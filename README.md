@@ -55,7 +55,7 @@ Projeto acadêmico de Aprendizado de Máquina (ML) cujo objetivo é combater a d
 - **Verificação de informação:** dado um texto/afirmação sobre dieta, alimento ou nutrição (ex.: "canela cura diabetes"), o sistema classifica como verdadeiro, falso, enganoso/parcialmente verdadeiro ou "sem evidência suficiente".
 - **Chatbot funcional:** mantém conversa coerente, entende linguagem natural (erros de digitação, gírias, etc.) e responde com clareza.
 - **Contextualização para diabetes:** não basta dizer "é falso" — precisa explicar por que é perigoso especificamente para quem tem diabetes (ex.: impacto glicêmico, interação com insulina/medicamentos).
-- **Citação de fontes confiáveis:** toda resposta embasada em fontes como SBD (Sociedade Brasileira de Diabetes), Ministério da Saúde, ADA, artigos científicos etc.
+- **Citação de fontes confiáveis:** toda resposta embasada em fontes como SBD (Sociedade Brasileira de Diabetes), Ministério da Saúde, artigos científicos etc.
 
 #### Critérios Técnicos / de ML
 
