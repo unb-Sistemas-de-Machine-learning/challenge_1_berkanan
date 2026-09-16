@@ -15,6 +15,7 @@ chromadb>=0.4
 
 # PDF
 PyMuPDF>=1.23
+fpdf2>=2.7
 
 # PostgreSQL
 psycopg2-binary>=2.9

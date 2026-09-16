@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS Analysis_History (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     input_text TEXT NOT NULL,
     classification VARCHAR(50) NOT NULL
-        CHECK (classification IN ('REAL', 'FAKE', 'INCONCLUSIVE')),
+        CHECK (classification IN ('REAL', 'FAKE', 'INCONCLUSIVE', 'PARTIALLY_TRUE')),
     confidence_score NUMERIC(5, 4)
         CHECK (confidence_score >= 0 AND confidence_score <= 1),
     matched_sources JSONB DEFAULT '[]'::jsonb,
