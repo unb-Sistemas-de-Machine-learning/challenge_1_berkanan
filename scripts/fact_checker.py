@@ -17,10 +17,6 @@ import argparse
 import numpy as np
 from datetime import datetime
 
-if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
-
 # Adiciona o diretório pai ao path para imports relativos
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
@@ -31,9 +27,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report
 import joblib
-
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
 
 # Modelo multilíngue — mesmo do batch_ingest
 EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
@@ -112,6 +105,9 @@ class DiabetesFactChecker:
     def _load_vectorstore(self):
         """Carrega o ChromaDB."""
         if self.vectorstore is None:
+            from langchain_huggingface import HuggingFaceEmbeddings
+            from langchain_community.vectorstores import Chroma
+
             if not os.path.exists(self.chroma_dir):
                 print("⚠ ChromaDB não encontrado. Rode batch_ingest.py primeiro.")
                 return
