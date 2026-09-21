@@ -18,14 +18,21 @@ env/
 .DS_Store
 Thumbs.db
 
-# Dados brutos e processados (grandes demais para o git)
+# Dados brutos e processados (grandes demais para o git, e cada pessoa
+# regenera rodando scraper.py -> dataset_builder.py -> batch_ingest.py)
 data/raw/guidelines/*.pdf
 data/raw/guidelines/*.txt
+data/raw/guidelines/scraped_log.json
 data/raw/factchecks.json
+data/processed/*.csv
 knowledge_base/chromadb/
 
-# Modelo treinado
+# Modelo treinado (gerado por fact_checker.py --train)
 data/processed/classifier.joblib
+
+# Cache de modelos baixados do Hugging Face (~470MB, cada máquina baixa a sua)
+.cache/
+huggingface/
 
 # Docker volumes
 postgres_data/

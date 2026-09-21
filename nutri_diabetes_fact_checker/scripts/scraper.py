@@ -7,11 +7,24 @@ Também raspa exemplos de fake news conhecidas para o dataset de treino.
 """
 import os
 import re
+import sys
 import json
 import time
 import hashlib
 import requests
+import urllib3
 from bs4 import BeautifulSoup
+
+# Corrige o mojibake (â†’, âœ”, Ã©...) que aparece no PowerShell: o console do
+# Windows nem sempre usa UTF-8 por padrão, então forçamos a codificação de
+# saída. Isso não muda o conteúdo dos arquivos salvos, só o que é impresso.
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
+# Estamos usando verify=False de propósito (ver fetch_page_text), então
+# silenciamos o aviso repetido do urllib3 em vez de ignorá-lo linha a linha.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 HEADERS = {
     "User-Agent": (
@@ -20,7 +33,7 @@ HEADERS = {
         "Chrome/120.0.0.0 Safari/537.36"
     )
 }
-TIMEOUT = 20
+TIMEOUT = 40
 
 
 # ====================================================================
@@ -28,37 +41,55 @@ TIMEOUT = 20
 # ====================================================================
 OFFICIAL_SOURCES = [
     # SBD - Diretrizes individuais (HTML)
+    # URLs revisadas em 2026-09; o site da SBD reorganizou os slugs desde
+    # que a lista original foi montada, então os antigos devolviam 404.
     {
-        "url": "https://diretriz.diabetes.org.br/diagnostico-e-tratamento-do-diabetes-tipo-1/",
+        "url": "https://diretriz.diabetes.org.br/tratamento-do-diabetes-mellitus-tipo-1-no-sus/",
         "name": "SBD_diagnostico_tratamento_DM1",
     },
     {
-        "url": "https://diretriz.diabetes.org.br/tratamento-farmacologico-da-hiperglicemia-no-dm2/",
+        "url": "https://diretriz.diabetes.org.br/manejo-do-diabetes-mellitus-tipo-2/",
         "name": "SBD_tratamento_farmacologico_DM2",
     },
     {
-        "url": "https://diretriz.diabetes.org.br/principios-gerais-da-orientacao-nutricional-no-diabetes-mellitus/",
-        "name": "SBD_orientacao_nutricional",
+        "url": "https://diretriz.diabetes.org.br/terapia-nutricional-no-pre-diabetes-e-no-diabetes-mellitus-tipo-2/",
+        "name": "SBD_orientacao_nutricional_DM2",
     },
     {
-        "url": "https://diretriz.diabetes.org.br/definicao-diagnostico-e-classificacao-do-diabetes-mellitus/",
+        "url": "https://diretriz.diabetes.org.br/terapia-nutricional-no-diabetes-tipo-1/",
+        "name": "SBD_orientacao_nutricional_DM1",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/diagnostico-de-diabetes-mellitus/",
         "name": "SBD_definicao_diagnostico_classificacao",
     },
     {
-        "url": "https://diretriz.diabetes.org.br/metas-no-tratamento-do-diabetes/",
+        "url": "https://diretriz.diabetes.org.br/metas-de-controle-glicemico/",
         "name": "SBD_metas_tratamento",
     },
     {
-        "url": "https://diretriz.diabetes.org.br/neuropatia-diabetica/",
+        "url": "https://diretriz.diabetes.org.br/diagnostico-e-tratamento-da-neuropatiaperiferica-diabetica/",
         "name": "SBD_neuropatia",
     },
     {
-        "url": "https://diretriz.diabetes.org.br/retinopatia-diabetica/",
+        "url": "https://diretriz.diabetes.org.br/manejo-da-retinopatia-diabetica/",
         "name": "SBD_retinopatia",
     },
     {
         "url": "https://diretriz.diabetes.org.br/doenca-renal-do-diabetes/",
         "name": "SBD_doenca_renal",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/planejamento-metas-e-monitorizacao-do-diabetes-durante-a-gestacao/",
+        "name": "SBD_diabetes_gestacional",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/atividade-fisica-e-exercicio-fisico-no-diabetes-mellitus-tipo-1/",
+        "name": "SBD_atividade_fisica_DM1",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/atividade-fisica-e-exercicio-no-pre-diabetes-e-dm2/",
+        "name": "SBD_atividade_fisica_DM2",
     },
     # Ministério da Saúde
     {
@@ -69,6 +100,15 @@ OFFICIAL_SOURCES = [
     {
         "url": "https://www.scielo.br/j/abem/a/GFkWfNpjZXymkMRzY5s68PJ/?lang=pt",
         "name": "SciELO_terapia_nutricional_DM2",
+    },
+    {
+        "url": "https://www.scielo.br/j/abem/a/NLm7zgDx85LgZhsLKywtgCB/?format=html&lang=pt",
+        "name": "SciELO_diabetes_gestacional_algoritmo",
+    },
+    # OPAS/OMS - referência institucional internacional
+    {
+        "url": "https://www.paho.org/bra/index.php?option=com_content&view=article&id=5053:numero-de-pessoas-com-diabetes-nas-americas-triplicou-desde-1980&Itemid=839",
+        "name": "OPAS_diabetes_americas_epidemiologia",
     },
 ]
 
