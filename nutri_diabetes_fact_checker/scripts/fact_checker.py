@@ -68,7 +68,7 @@ class DiabetesFactChecker:
                 class_weight="balanced",
                 C=1.0,
             )),
-        ])
+        ], memory=None)
 
         X_train = df_train["cleaned_text"].fillna(df_train["text"])
         y_train = df_train["label"]
