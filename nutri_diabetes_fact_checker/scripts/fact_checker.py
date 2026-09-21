@@ -28,9 +28,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import classification_report
 import joblib
 
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
-
 # Modelo multilíngue — mesmo do batch_ingest
 EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 MODEL_VERSION = "tfidf-logreg-v1"
@@ -108,6 +105,9 @@ class DiabetesFactChecker:
     def _load_vectorstore(self):
         """Carrega o ChromaDB."""
         if self.vectorstore is None:
+            from langchain_huggingface import HuggingFaceEmbeddings
+            from langchain_community.vectorstores import Chroma
+
             if not os.path.exists(self.chroma_dir):
                 print("⚠ ChromaDB não encontrado. Rode batch_ingest.py primeiro.")
                 return
