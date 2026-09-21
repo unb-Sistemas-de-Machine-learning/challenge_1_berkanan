@@ -204,7 +204,7 @@ source venv/bin/activate   # Linux/Mac
 # 2. Instalar dependências
 pip install -r requirements.txt
 
-# 3. Raspar dados oficiais (SBD, Ministério da Saúde, SciELO)
+# 3. Raspar dados oficiais (SBD, Ministério da Saúde, OMS, CDC e outras instituições)
 python scripts/scraper.py
 
 # 4. Ingerir no ChromaDB
@@ -221,12 +221,22 @@ python scripts/fact_checker.py "Chá de manga cura diabetes"
 
 # 8. Modo interativo
 python scripts/fact_checker.py --interactive
+
+# Pipeline completo: coleta e, depois, dataset/treino + embeddings em paralelo
+python scripts/run_pipeline.py
+
+# Reutilizar os arquivos já coletados
+python scripts/run_pipeline.py --skip-scrape
 ```
+
+O pipeline paralelo espera a raspagem terminar e então executa o treinamento
+do classificador enquanto gera os embeddings e atualiza o ChromaDB. Isso evita
+que arquivos ainda incompletos sejam processados e reduz o tempo total.
 
 ## Estrutura do Projeto
 
 ```
-nutri_diabetes_fact_checker/
+challenge_1_berkanan/
 ├── data/
 │   ├── raw/
 │   │   ├── guidelines/       # Textos oficiais raspados (SBD, MS)
@@ -245,6 +255,7 @@ nutri_diabetes_fact_checker/
 │   ├── scraper.py             # Raspagem de fontes oficiais
 │   ├── batch_ingest.py        # Ingestão no ChromaDB
 │   ├── dataset_builder.py     # Geração do dataset rotulado
+│   ├── run_pipeline.py        # Treino e embeddings em paralelo
 │   └── fact_checker.py        # Motor central (treino + inferência)
 ├── docker-compose.yml         # PostgreSQL via Docker
 ├── requirements.txt
@@ -256,11 +267,20 @@ nutri_diabetes_fact_checker/
 
 | Componente | Arquivo | Descrição |
 |---|---|---|
-| **Scraper** | `scraper.py` | Raspa 10+ fontes oficiais (SBD, MS, SciELO) + fact-checks |
+| **Scraper** | `scraper.py` | Raspa 60+ referências oficiais (SBD, MS, OMS, CDC, NIDDK, NHS e outras) + fact-checks; possui retries para HTTP 504 |
 | **Ingestão** | `batch_ingest.py` | Processa .pdf e .txt, embeddings multilíngues, dedup por hash |
 | **Dataset** | `dataset_builder.py` | 60+ exemplos curados, dedup, train/test split |
 | **Classificador** | `fact_checker.py` | TF-IDF + Logistic Regression + busca RAG no ChromaDB |
+| **Pipeline paralelo** | `run_pipeline.py` | Treina o classificador enquanto gera embeddings após a coleta |
 | **Banco** | `database.py` | Context-manager, rollback automático, INSERT/SELECT |
+
+### Estado atual da base
+
+- Catálogo configurado com **63 referências oficiais únicas**.
+- Execução validada com **52 URLs coletadas** e **56 documentos de guidelines**.
+- Dataset atual com **84 registros** (55 FAKE e 29 REAL).
+- Treinamento validado com **88% de acurácia** no conjunto de teste.
+- ChromaDB populado com **1.910 chunks** e embeddings multilíngues.
 
 ## PostgreSQL (opcional)
 
