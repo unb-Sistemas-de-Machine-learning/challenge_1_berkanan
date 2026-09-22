@@ -1,9 +1,19 @@
 import os
+import sys
 import requests
 from bs4 import BeautifulSoup
 import urllib.parse
 import json
 import time
+
+# Garante saída UTF-8 no Windows para evitar UnicodeEncodeError
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 
 def load_downloaded_log(log_path):
     if os.path.exists(log_path):

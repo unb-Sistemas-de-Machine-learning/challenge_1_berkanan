@@ -15,9 +15,33 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
+# Garante saída UTF-8 no Windows para evitar UnicodeEncodeError
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PYTHON = sys.executable
+
+
+def get_python_executable() -> str:
+    """Retorna o interpretador Python do virtualenv local se disponível."""
+    if sys.prefix != getattr(sys, "base_prefix", sys.prefix):
+        return sys.executable
+    for venv_dir in ["venv", ".venv"]:
+        venv_py = os.path.join(PROJECT_ROOT, venv_dir, "Scripts", "python.exe")
+        if os.path.exists(venv_py):
+            return venv_py
+        venv_py_unix = os.path.join(PROJECT_ROOT, venv_dir, "bin", "python")
+        if os.path.exists(venv_py_unix):
+            return venv_py_unix
+    return sys.executable
+
+
+PYTHON = get_python_executable()
+
 
 
 def run_step(label: str, args: list[str]) -> None:

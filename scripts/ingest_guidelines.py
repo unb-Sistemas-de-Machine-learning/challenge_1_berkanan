@@ -1,8 +1,21 @@
 import os
+import sys
+
+# Garante saída UTF-8 no Windows para evitar UnicodeEncodeError
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
+
+EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
 
 def process_pdf(pdf_path, chunk_size=1000, chunk_overlap=100):
     """
@@ -26,8 +39,11 @@ def ingest_to_chroma(chunks, persist_directory):
     """
     Gera os embeddings e ingere no ChromaDB.
     """
-    print("Inicializando embeddings (HuggingFace)...")
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    print(f"Inicializando embeddings (HuggingFace: {EMBEDDING_MODEL})...")
+    embeddings = HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL,
+        encode_kwargs={"normalize_embeddings": True},
+    )
     
     print(f"Ingerindo dados no ChromaDB em {persist_directory}...")
     vectorstore = Chroma.from_documents(

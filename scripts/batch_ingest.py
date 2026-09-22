@@ -5,8 +5,18 @@ Lê TODOS os formatos suportados (.pdf e .txt) da pasta de guidelines,
 faz chunking, gera embeddings com modelo MULTILÍNGUE e insere em lotes com deduplicação.
 """
 import os
+import sys
 import hashlib
 from tqdm import tqdm
+
+# Garante saída UTF-8 no Windows para evitar UnicodeEncodeError
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 from langchain_community.document_loaders import PyMuPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings

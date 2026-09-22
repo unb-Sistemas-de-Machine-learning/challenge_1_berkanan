@@ -16,12 +16,13 @@ from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-# Corrige o mojibake (â†’, âœ”, Ã©...) que aparece no PowerShell: o console do
-# Windows nem sempre usa UTF-8 por padrão, então forçamos a codificação de
-# saída. Isso não muda o conteúdo dos arquivos salvos, só o que é impresso.
+# Garante saída UTF-8 no Windows para evitar UnicodeEncodeError e mojibake
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 # Estamos usando verify=False de propósito (ver fetch_page_text), então
 # silenciamos o aviso repetido do urllib3 em vez de ignorá-lo linha a linha.
@@ -63,12 +64,12 @@ SESSION = build_http_session()
 
 
 # ====================================================================
-# Fontes oficiais: páginas HTML com conteúdo confiável sobre diabetes
+# Fontes oficiais: 100 páginas HTML com conteúdo confiável sobre diabetes
 # ====================================================================
 OFFICIAL_SOURCES = [
-    # SBD - Diretrizes individuais (HTML)
-    # URLs revisadas em 2026-09; o site da SBD reorganizou os slugs desde
-    # que a lista original foi montada, então os antigos devolviam 404.
+    # ----------------------------------------------------------------
+    # 1. Sociedade Brasileira de Diabetes (SBD) - Diretrizes e Portal (34)
+    # ----------------------------------------------------------------
     {
         "url": "https://diretriz.diabetes.org.br/tratamento-do-diabetes-mellitus-tipo-1-no-sus/",
         "name": "SBD_diagnostico_tratamento_DM1",
@@ -117,12 +118,110 @@ OFFICIAL_SOURCES = [
         "url": "https://diretriz.diabetes.org.br/atividade-fisica-e-exercicio-no-pre-diabetes-e-dm2/",
         "name": "SBD_atividade_fisica_DM2",
     },
-    # Ministério da Saúde
+    {
+        "url": "https://diretriz.diabetes.org.br/insulinoterapia-no-diabetes-mellitus-tipo-1-dm1/",
+        "name": "SBD_insulinoterapia_DM1",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/praticas-seguras-para-preparo-e-aplicacao-de-insulina/",
+        "name": "SBD_aplicacao_insulina",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/sistemas-de-infusao-continua-de-insulina/",
+        "name": "SBD_infusao_continua_insulina",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/monitorizacao-da-glicemia-capilar-da-glicose-intersticial-cgme-cetonemia-capilar-em-pessoas-com-diabetes-mellitus/",
+        "name": "SBD_monitorizacao_glicemia_cgm",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/transtornos-alimentares-na-pessoa-com-diabetes-2/",
+        "name": "SBD_transtornos_alimentares",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/tratamento-farmacologico-do-pre-diabetes/",
+        "name": "SBD_tratamento_prediabetes",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/tratamento-do-dm2-no-sistema-unico-de-saude-sus/",
+        "name": "SBD_tratamento_DM2_sus",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/tratamento-farmacologico-do-diabetes-na-gestacao/",
+        "name": "SBD_farmacologia_gestacao",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/rastreamento-e-diagnostico-da-hiperglicemia-na-gestacao/",
+        "name": "SBD_diagnostico_gestacao",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/manejo-da-sindrome-hiperglicemica-hiperosmolar-nao-cetotica-shhnc/",
+        "name": "SBD_sindrome_hiperosmolar",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/o-paciente-idoso-com-diabetes/",
+        "name": "SBD_diabetes_idoso",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/peculiaridades-do-tratamento-da-crianca-com-dm1/",
+        "name": "SBD_crianca_DM1",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/imunizacao-no-diabetes/",
+        "name": "SBD_imunizacao",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/manejo-da-hipertensao-arterial-no-diabetes/",
+        "name": "SBD_hipertensao",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/manejo-do-paciente-dm2-com-insuficiencia-cardiaca-ic/",
+        "name": "SBD_insuficiencia_cardiaca",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/manejo-dos-dias-de-doenca-no-dm1/",
+        "name": "SBD_dias_doenca_DM1",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/manejo-da-depressao-no-diabetes/",
+        "name": "SBD_depressao_diabetes",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/hiperglicemia-hospitalar-no-paciente-critico/",
+        "name": "SBD_hiperglicemia_hospitalar_critico",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/manejo-da-hiperglicemia-hospitalar-em-pacientes-nao-criticos/",
+        "name": "SBD_hiperglicemia_hospitalar_nao_critico",
+    },
+    {
+        "url": "https://diretriz.diabetes.org.br/manejo-do-risco-cardiovascular-dislipidemia/",
+        "name": "SBD_risco_cardiovascular_dislipidemia",
+    },
+    {
+        "url": "https://diabetes.org.br/alimentacao-saudavel/",
+        "name": "SBD_portal_alimentacao",
+    },
+    {
+        "url": "https://diabetes.org.br/mitos-e-verdades/",
+        "name": "SBD_portal_mitos",
+    },
+
+    # ----------------------------------------------------------------
+    # 2. Ministério da Saúde do Brasil (2)
+    # ----------------------------------------------------------------
     {
         "url": "https://www.gov.br/saude/pt-br/assuntos/saude-de-a-a-z/d/diabetes",
         "name": "MS_diabetes_pagina_principal",
     },
-    # SciELO - artigos abertos
+    {
+        "url": "https://www.gov.br/saude/pt-br/assuntos/saude-de-a-a-z/d/diabetes/tratamento",
+        "name": "MS_tratamento_diabetes",
+    },
+
+    # ----------------------------------------------------------------
+    # 3. SciELO - Artigos Abertos e Consensos Nacionais (2)
+    # ----------------------------------------------------------------
     {
         "url": "https://www.scielo.br/j/abem/a/GFkWfNpjZXymkMRzY5s68PJ/?lang=pt",
         "name": "SciELO_terapia_nutricional_DM2",
@@ -131,18 +230,26 @@ OFFICIAL_SOURCES = [
         "url": "https://www.scielo.br/j/abem/a/NLm7zgDx85LgZhsLKywtgCB/?format=html&lang=pt",
         "name": "SciELO_diabetes_gestacional_algoritmo",
     },
-    # OPAS/OMS - referência institucional internacional
+
+    # ----------------------------------------------------------------
+    # 4. OPAS / OMS (9)
+    # ----------------------------------------------------------------
     {
         "url": "https://www.paho.org/bra/index.php?option=com_content&view=article&id=5053:numero-de-pessoas-com-diabetes-nas-americas-triplicou-desde-1980&Itemid=839",
         "name": "OPAS_diabetes_americas_epidemiologia",
     },
-    # Organização Mundial da Saúde
     {"url": "https://www.who.int/health-topics/diabetes", "name": "OMS_diabetes"},
     {"url": "https://www.who.int/news-room/fact-sheets/detail/diabetes", "name": "OMS_diabetes_fatos"},
     {"url": "https://www.who.int/publications/i/item/9789240075194", "name": "OMS_relatorio_diabetes"},
     {"url": "https://www.paho.org/en/topics/diabetes", "name": "OPAS_diabetes"},
     {"url": "https://www.paho.org/en/topics/noncommunicable-diseases", "name": "OPAS_doencas_cronicas"},
-    # Centers for Disease Control and Prevention (CDC)
+    {"url": "https://www.paho.org/pt/topicos/alimentacao-saudavel", "name": "OPAS_alimentacao_saudavel"},
+    {"url": "https://www.who.int/news-room/fact-sheets/detail/healthy-diet", "name": "OMS_dieta_saudavel"},
+    {"url": "https://www.who.int/news-room/fact-sheets/detail/physical-activity", "name": "OMS_atividade_fisica"},
+
+    # ----------------------------------------------------------------
+    # 5. Centers for Disease Control and Prevention - CDC (8)
+    # ----------------------------------------------------------------
     {"url": "https://www.cdc.gov/diabetes/about/index.html", "name": "CDC_sobre_diabetes"},
     {"url": "https://www.cdc.gov/diabetes/signs-symptoms/index.html", "name": "CDC_sinais_sintomas"},
     {"url": "https://www.cdc.gov/diabetes/risk-factors/index.html", "name": "CDC_fatores_risco"},
@@ -150,7 +257,11 @@ OFFICIAL_SOURCES = [
     {"url": "https://www.cdc.gov/diabetes/healthy-eating/index.html", "name": "CDC_alimentacao_saudavel"},
     {"url": "https://www.cdc.gov/diabetes/living-with/index.html", "name": "CDC_vivendo_diabetes"},
     {"url": "https://www.cdc.gov/diabetes/data-research/index.html", "name": "CDC_dados_diabetes"},
-    # National Institute of Diabetes and Digestive and Kidney Diseases (NIDDK)
+    {"url": "https://www.cdc.gov/diabetes/about/gestational-diabetes.html", "name": "CDC_diabetes_gestacional"},
+
+    # ----------------------------------------------------------------
+    # 6. National Institute of Diabetes and Digestive and Kidney Diseases - NIDDK (14)
+    # ----------------------------------------------------------------
     {"url": "https://www.niddk.nih.gov/health-information/diabetes/overview/what-is-diabetes", "name": "NIDDK_o_que_e_diabetes"},
     {"url": "https://www.niddk.nih.gov/health-information/diabetes/overview/types", "name": "NIDDK_tipos_diabetes"},
     {"url": "https://www.niddk.nih.gov/health-information/diabetes/overview/symptoms-causes", "name": "NIDDK_sintomas_causas"},
@@ -160,13 +271,28 @@ OFFICIAL_SOURCES = [
     {"url": "https://www.niddk.nih.gov/health-information/diabetes/overview/preventing-problems", "name": "NIDDK_prevencao_complicacoes"},
     {"url": "https://www.niddk.nih.gov/health-information/diabetes/overview/insulin-medicines-treatments", "name": "NIDDK_insulina_medicamentos"},
     {"url": "https://www.niddk.nih.gov/health-information/diabetes/overview/managing-diabetes", "name": "NIDDK_controle_diabetes"},
-    # MedlinePlus / National Library of Medicine
+    {"url": "https://www.niddk.nih.gov/health-information/diabetes/overview/what-is-diabetes/prediabetes-insulin-resistance", "name": "NIDDK_prediabetes"},
+    {"url": "https://www.niddk.nih.gov/health-information/diabetes/overview/preventing-problems/low-blood-glucose-hypoglycemia", "name": "NIDDK_hipoglicemia"},
+    {"url": "https://www.niddk.nih.gov/health-information/diabetes/overview/preventing-problems/diabetic-kidney-disease", "name": "NIDDK_doenca_renal"},
+    {"url": "https://www.niddk.nih.gov/health-information/diabetes/overview/preventing-problems/heart-disease-stroke", "name": "NIDDK_doenca_cardiaca"},
+    {"url": "https://www.niddk.nih.gov/health-information/diabetes/overview/preventing-problems/diabetic-eye-disease", "name": "NIDDK_olhos"},
+
+    # ----------------------------------------------------------------
+    # 7. MedlinePlus / National Library of Medicine (9)
+    # ----------------------------------------------------------------
     {"url": "https://medlineplus.gov/diabetes.html", "name": "MedlinePlus_diabetes"},
     {"url": "https://medlineplus.gov/diabetestype1.html", "name": "MedlinePlus_DM1"},
     {"url": "https://medlineplus.gov/diabetestype2.html", "name": "MedlinePlus_DM2"},
     {"url": "https://medlineplus.gov/diabeticdiet.html", "name": "MedlinePlus_dieta_diabetes"},
     {"url": "https://medlineplus.gov/diabeticfoot.html", "name": "MedlinePlus_pe_diabetico"},
-    # National Health Service (NHS)
+    {"url": "https://medlineplus.gov/prediabetes.html", "name": "MedlinePlus_prediabetes"},
+    {"url": "https://medlineplus.gov/diabetescomplications.html", "name": "MedlinePlus_complicacoes"},
+    {"url": "https://medlineplus.gov/bloodglucose.html", "name": "MedlinePlus_glicemia"},
+    {"url": "https://medlineplus.gov/hypoglycemia.html", "name": "MedlinePlus_hipoglicemia"},
+
+    # ----------------------------------------------------------------
+    # 8. National Health Service - NHS (7)
+    # ----------------------------------------------------------------
     {"url": "https://www.nhs.uk/conditions/diabetes/", "name": "NHS_diabetes"},
     {"url": "https://www.nhs.uk/conditions/type-1-diabetes/", "name": "NHS_DM1"},
     {"url": "https://www.nhs.uk/conditions/type-2-diabetes/", "name": "NHS_DM2"},
@@ -174,23 +300,37 @@ OFFICIAL_SOURCES = [
     {"url": "https://www.nhs.uk/conditions/diabetic-retinopathy/", "name": "NHS_retinopatia"},
     {"url": "https://www.nhs.uk/conditions/diabetic-neuropathy/", "name": "NHS_neuropatia"},
     {"url": "https://www.nhs.uk/live-well/eat-well/food-guidelines-and-food-labels/", "name": "NHS_guia_alimentar"},
-    # Diabetes UK
+
+    # ----------------------------------------------------------------
+    # 9. Diabetes UK (5)
+    # ----------------------------------------------------------------
     {"url": "https://www.diabetes.org.uk/about-diabetes/type-1-diabetes", "name": "DiabetesUK_DM1"},
     {"url": "https://www.diabetes.org.uk/about-diabetes/type-2-diabetes", "name": "DiabetesUK_DM2"},
     {"url": "https://www.diabetes.org.uk/about-diabetes/gestational-diabetes", "name": "DiabetesUK_gestacional"},
     {"url": "https://www.diabetes.org.uk/guide-to-diabetes/enjoy-food", "name": "DiabetesUK_alimentacao"},
     {"url": "https://www.diabetes.org.uk/guide-to-diabetes/complications", "name": "DiabetesUK_complicacoes"},
-    # American Diabetes Association
+
+    # ----------------------------------------------------------------
+    # 10. American Diabetes Association - ADA (5)
+    # ----------------------------------------------------------------
     {"url": "https://diabetes.org/about-diabetes/type-1", "name": "ADA_DM1"},
     {"url": "https://diabetes.org/about-diabetes/type-2", "name": "ADA_DM2"},
     {"url": "https://diabetes.org/food-nutrition", "name": "ADA_nutricao"},
     {"url": "https://diabetes.org/health-wellness/fitness", "name": "ADA_atividade_fisica"},
     {"url": "https://diabetes.org/living-with-diabetes/treatment-care", "name": "ADA_tratamento"},
-    # Mayo Clinic e Federação Internacional de Diabetes
+
+    # ----------------------------------------------------------------
+    # 11. Mayo Clinic (2)
+    # ----------------------------------------------------------------
     {"url": "https://www.mayoclinic.org/diseases-conditions/type-2-diabetes/symptoms-causes/syc-20351193", "name": "Mayo_DM2"},
     {"url": "https://www.mayoclinic.org/diseases-conditions/type-1-diabetes/symptoms-causes/syc-20353011", "name": "Mayo_DM1"},
+
+    # ----------------------------------------------------------------
+    # 12. International Diabetes Federation - IDF (3)
+    # ----------------------------------------------------------------
     {"url": "https://idf.org/about-diabetes/what-is-diabetes/", "name": "IDF_o_que_e_diabetes"},
     {"url": "https://idf.org/about-diabetes/diabetes-complications/", "name": "IDF_complicacoes"},
+    {"url": "https://idf.org/about-diabetes/gestational-diabetes/", "name": "IDF_gestacional"},
 ]
 
 
@@ -240,22 +380,26 @@ def scrape_official_sources(output_dir: str):
     # Carrega log de URLs já raspadas
     scraped = set()
     if os.path.exists(log_path):
-        with open(log_path, "r", encoding="utf-8") as f:
-            scraped = set(json.load(f))
+        try:
+            with open(log_path, "r", encoding="utf-8") as f:
+                scraped = set(json.load(f))
+        except Exception:
+            scraped = set()
 
     new_count = 0
     for source in OFFICIAL_SOURCES:
         url = source["url"]
         name = source["name"]
+        out_path = os.path.join(output_dir, f"{name}.txt")
 
-        if url in scraped:
-            print(f"  — Já raspado: {name}")
+        # Só pula se estiver no log E o arquivo físico existir e tiver conteúdo suficiente
+        if url in scraped and os.path.exists(out_path) and os.path.getsize(out_path) >= MIN_CONTENT_CHARS:
+            print(f"  — Já raspado e existente: {name}")
             continue
 
         print(f"  → Raspando: {name} ({url})")
         text = fetch_page_text(url)
         if text and len(text) >= MIN_CONTENT_CHARS:
-            out_path = os.path.join(output_dir, f"{name}.txt")
             with open(out_path, "w", encoding="utf-8") as f:
                 f.write(f"Fonte: {url}\n")
                 f.write(f"Título: {name}\n")
@@ -267,7 +411,7 @@ def scrape_official_sources(output_dir: str):
         else:
             print("    ⚠ Fonte não salva; será tentada novamente na próxima execução.")
 
-        time.sleep(1.5)  # Rate-limiting respeitoso
+        time.sleep(1.0)  # Rate-limiting respeitoso
 
     # Persiste log
     with open(log_path, "w", encoding="utf-8") as f:
@@ -280,12 +424,13 @@ def scrape_official_sources(output_dir: str):
 # Raspagem de exemplos fake/real para o dataset de treino
 # ====================================================================
 def scrape_fact_checks(output_path: str):
-    """Busca manchetes de fact-checks sobre diabetes em sites brasileiros."""
+    """Busca manchetes de fact-checks sobre diabetes em sites brasileiros com deduplicação."""
     urls = [
         "https://www.boatos.org/?s=diabetes",
         "https://www.e-farsas.com/?s=diabetes",
     ]
     results = []
+    seen_texts = set()
 
     for url in urls:
         print(f"  → Raspando fact-checks: {url}")
@@ -299,9 +444,11 @@ def scrape_fact_checks(output_path: str):
                 if link and link.get_text(strip=True):
                     title = link.get_text(strip=True)
                     href = link.get("href", "")
-                    if len(title) > 20:
+                    clean_t = re.sub(r"\s+", " ", title).strip()
+                    if len(clean_t) > 20 and clean_t.lower() not in seen_texts:
+                        seen_texts.add(clean_t.lower())
                         results.append({
-                            "text": title,
+                            "text": clean_t,
                             "url": href,
                             "source": url.split("/")[2],
                         })
@@ -325,7 +472,7 @@ if __name__ == "__main__":
     FACTCHECK_PATH = os.path.join(PROJECT_ROOT, "data", "raw", "factchecks.json")
 
     print("=" * 60)
-    print("ETAPA 1: Raspagem de fontes oficiais (SBD, MS, SciELO)")
+    print("ETAPA 1: Raspagem de fontes oficiais (SBD, MS, SciELO, OMS, CDC, etc.)")
     print("=" * 60)
     scrape_official_sources(GUIDELINES_DIR)
 

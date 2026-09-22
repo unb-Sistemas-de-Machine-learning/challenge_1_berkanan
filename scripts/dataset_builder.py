@@ -6,10 +6,20 @@ e limpeza de texto. Se existir data/raw/factchecks.json (gerado pelo scraper tem
 incorpora automaticamente com validação estrita.
 """
 import os
+import sys
 import re
 import json
 import hashlib
 import pandas as pd
+
+# Garante saída UTF-8 no Windows para evitar UnicodeEncodeError
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 
 # ====================================================================
 # Dados curados manualmente — exemplos reais de desinformação e

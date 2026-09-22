@@ -267,20 +267,19 @@ challenge_1_berkanan/
 
 | Componente | Arquivo | Descrição |
 |---|---|---|
-| **Scraper** | `scraper.py` | Raspa 60+ referências oficiais (SBD, MS, OMS, CDC, NIDDK, NHS e outras) + fact-checks; possui retries para HTTP 504 |
+| **Scraper** | `scraper.py` | Raspa 100 referências oficiais (SBD, MS, OMS, CDC, NIDDK, MedlinePlus, NHS, ADA, IDF, Mayo Clinic e outras) + fact-checks; possui retries para HTTP 504 |
 | **Ingestão** | `batch_ingest.py` | Processa .pdf e .txt, embeddings multilíngues, dedup por hash |
-| **Dataset** | `dataset_builder.py` | 60+ exemplos curados, dedup, train/test split |
+| **Dataset** | `dataset_builder.py` | 160+ exemplos curados e fact-checks, dedup, train/test split |
 | **Classificador** | `fact_checker.py` | TF-IDF + Logistic Regression + busca RAG no ChromaDB |
 | **Pipeline paralelo** | `run_pipeline.py` | Treina o classificador enquanto gera embeddings após a coleta |
 | **Banco** | `database.py` | Context-manager, rollback automático, INSERT/SELECT |
 
 ### Estado atual da base
 
-- Catálogo configurado com **63 referências oficiais únicas**.
-- Execução validada com **52 URLs coletadas** e **56 documentos de guidelines**.
-- Dataset atual com **84 registros** (55 FAKE e 29 REAL).
-- Treinamento validado com **88% de acurácia** no conjunto de teste.
-- ChromaDB populado com **1.910 chunks** e embeddings multilíngues.
+- Catálogo configurado com **100 referências oficiais únicas**.
+- Dataset consolidado com **164 registros** (106 FAKE e 58 REAL).
+- Treinamento validado com **94% de acurácia** (F1-score 0.94) no conjunto de teste.
+- Embeddings multilíngues (`paraphrase-multilingual-MiniLM-L12-v2`) no ChromaDB.
 
 ## PostgreSQL (opcional)
 
