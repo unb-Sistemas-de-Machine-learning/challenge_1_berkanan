@@ -1,0 +1,68 @@
+[
+  {
+    "model": "MultinomialNB",
+    "best_params": {
+      "clf__alpha": 0.1,
+      "clf__fit_prior": true,
+      "tfidf__min_df": 1,
+      "tfidf__ngram_range": [
+        1,
+        2
+      ],
+      "tfidf__sublinear_tf": true
+    },
+    "cv_f1_fake": 0.9095,
+    "cv_recall_fake": 0.9765,
+    "cv_f1_macro": 0.8546,
+    "train_seconds": 1.2
+  },
+  {
+    "model": "LinearSVC",
+    "best_params": {
+      "clf__C": 10.0,
+      "tfidf__min_df": 1,
+      "tfidf__ngram_range": [
+        1,
+        1
+      ],
+      "tfidf__sublinear_tf": true
+    },
+    "cv_f1_fake": 0.9082,
+    "cv_recall_fake": 0.9647,
+    "cv_f1_macro": 0.8562,
+    "train_seconds": 0.6
+  },
+  {
+    "model": "LogisticRegression",
+    "best_params": {
+      "clf__C": 10.0,
+      "tfidf__min_df": 1,
+      "tfidf__ngram_range": [
+        1,
+        2
+      ],
+      "tfidf__sublinear_tf": true
+    },
+    "cv_f1_fake": 0.8908,
+    "cv_recall_fake": 0.9397,
+    "cv_f1_macro": 0.8296,
+    "train_seconds": 11.0
+  },
+  {
+    "model": "RandomForest",
+    "best_params": {
+      "clf__max_depth": null,
+      "clf__n_estimators": 400,
+      "tfidf__min_df": 2,
+      "tfidf__ngram_range": [
+        1,
+        1
+      ],
+      "tfidf__sublinear_tf": true
+    },
+    "cv_f1_fake": 0.8652,
+    "cv_recall_fake": 0.9397,
+    "cv_f1_macro": 0.7782,
+    "train_seconds": 16.7
+  }
+]
