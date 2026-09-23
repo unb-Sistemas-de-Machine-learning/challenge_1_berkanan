@@ -1,0 +1,8 @@
+# requirements-api.txt — dependências SOMENTE da API FastAPI
+# (sem LangChain, ChromaDB, PostgreSQL, etc.)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+scikit-learn>=1.3
+joblib>=1.3
+pandas>=2.0
+numpy>=1.24

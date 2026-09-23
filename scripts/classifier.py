@@ -31,10 +31,11 @@ import pandas as pd
 
 from train_model import OFF_SCOPE_HASHES, build_search_space
 
-MODEL_PATH = Path("models/classifier_v2.joblib")
-METADATA_PATH = Path("models/training_metadata.json")
-CV_RESULTS_PATH = Path("models/cv_results.json")
-DEFAULT_TRAIN_PATH = Path("data/processed/diabetes_nutrition_dataset_train.csv")
+_ROOT = Path(__file__).resolve().parent.parent  # raiz do projeto
+MODEL_PATH = _ROOT / "models" / "classifier_v2.joblib"
+METADATA_PATH = _ROOT / "models" / "training_metadata.json"
+CV_RESULTS_PATH = _ROOT / "models" / "cv_results.json"
+DEFAULT_TRAIN_PATH = _ROOT / "data" / "processed" / "diabetes_nutrition_dataset_train.csv"
 
 POSITIVE_LABEL = "FAKE"
 
