@@ -3,18 +3,19 @@ fact_checker.py — Motor central do Fact-Checker de Diabetes e Nutrição.
 
 Conecta os três componentes:
   1. ChromaDB (base de conhecimento) → busca por similaridade
-  2. Modelo de classificação (TF-IDF + Logistic Regression) → FAKE/REAL
+  2. Classificador FAKE/REAL (scripts/classifier.py) → modelo vencedor da
+     comparação em train_model.py + threshold calibrado em
+     calibrate_and_evaluate.py
   3. PostgreSQL (Analysis_History) → persiste resultados
 
 Uso:
   python scripts/fact_checker.py "Chá de manga cura diabetes"
+  python scripts/fact_checker.py --train
   python scripts/fact_checker.py --interactive
 """
 import os
 import sys
-import json
 import argparse
-import numpy as np
 from datetime import datetime
 
 # Garante saída UTF-8 no Windows para evitar UnicodeEncodeError
@@ -29,16 +30,10 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import classification_report
-import joblib
+import classifier as clf  # scripts/classifier.py — treino/inferência
 
 # Modelo multilíngue — mesmo do batch_ingest
 EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-MODEL_VERSION = "tfidf-logreg-v1"
 
 
 class DiabetesFactChecker:
@@ -46,66 +41,28 @@ class DiabetesFactChecker:
 
     def __init__(self, chroma_dir: str, model_path: str | None = None):
         self.chroma_dir = chroma_dir
-        self.model_path = model_path or os.path.join(
-            PROJECT_ROOT, "data", "processed", "classifier.joblib"
-        )
+        self.model_path = model_path or clf.MODEL_PATH
         self.classifier = None
         self.vectorstore = None
 
     # ------------------------------------------------------------------
     # 1. Treinamento do classificador
     # ------------------------------------------------------------------
-    def train(self, train_csv: str, test_csv: str | None = None):
-        """Treina o pipeline TF-IDF + LogisticRegression."""
-        print("=" * 60)
-        print("TREINANDO CLASSIFICADOR")
-        print("=" * 60)
-
-        df_train = pd.read_csv(train_csv)
-        print(f"Dados de treino: {len(df_train)} registros")
-        print(df_train["label"].value_counts().to_string())
-
-        pipeline = Pipeline([
-            ("tfidf", TfidfVectorizer(
-                max_features=5000,
-                ngram_range=(1, 2),
-                sublinear_tf=True,
-            )),
-            ("clf", LogisticRegression(
-                max_iter=1000,
-                class_weight="balanced",
-                C=1.0,
-            )),
-        ])
-
-        X_train = df_train["cleaned_text"].fillna(df_train["text"])
-        y_train = df_train["label"]
-        pipeline.fit(X_train, y_train)
-
-        # Avalia no teste se disponível
-        if test_csv and os.path.exists(test_csv):
-            df_test = pd.read_csv(test_csv)
-            X_test = df_test["cleaned_text"].fillna(df_test["text"])
-            y_test = df_test["label"]
-            y_pred = pipeline.predict(X_test)
-            print("\n--- Relatório no conjunto de teste ---")
-            print(classification_report(y_test, y_pred))
-
-        # Salva
-        os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
-        joblib.dump(pipeline, self.model_path)
-        self.classifier = pipeline
-        print(f"\n✔ Modelo salvo em {self.model_path}")
+    def train(self, train_csv: str):
+        """Treina o pipeline vencedor (train_model.py + calibrate_and_evaluate.py
+        já devem ter rodado antes, para existir models/cv_results.json e
+        models/training_metadata.json) e exporta o artefato final."""
+        clf.train_and_export(
+            train_path=train_csv,
+            model_out_path=self.model_path,
+        )
+        # invalida cache em memória para forçar recarregar o novo artefato
+        self.classifier = None
 
     def _load_classifier(self):
-        """Carrega o classificador do disco."""
+        """Carrega o classificador do disco (models/classifier_v2.joblib)."""
         if self.classifier is None:
-            if not os.path.exists(self.model_path):
-                raise FileNotFoundError(
-                    f"Modelo não encontrado em {self.model_path}. "
-                    "Rode primeiro: python scripts/fact_checker.py --train"
-                )
-            self.classifier = joblib.load(self.model_path)
+            self.classifier = clf.load_model(self.model_path)
 
     # ------------------------------------------------------------------
     # 2. Busca por similaridade no ChromaDB
@@ -151,16 +108,13 @@ class DiabetesFactChecker:
         """Pipeline completo: classifica + busca evidências + (opcionalmente) salva."""
         self._load_classifier()
 
-        # Classificação
-        proba = self.classifier.predict_proba([claim])[0]
-        classes = self.classifier.classes_
-        pred_idx = np.argmax(proba)
-        classification = classes[pred_idx]
-        confidence = float(proba[pred_idx])
-
-        # Se confiança é baixa, marca como INCONCLUSIVE
-        if confidence < 0.6:
-            classification = "INCONCLUSIVE"
+        # Classificação — delega inteiramente ao classifier.py (modelo +
+        # threshold calibrado). p_fake é sempre a probabilidade de FAKE,
+        # independentemente do rótulo final.
+        prediction = clf.predict(claim, model=self.classifier)
+        classification = prediction["label"]
+        p_fake = prediction["p_fake"]
+        threshold = prediction["threshold"]
 
         # Busca evidências no ChromaDB
         evidence = self.search_evidence(claim)
@@ -168,9 +122,10 @@ class DiabetesFactChecker:
         result = {
             "input_text": claim,
             "classification": classification,
-            "confidence_score": round(confidence, 4),
+            "p_fake": p_fake,
+            "threshold": threshold,
             "matched_sources": evidence,
-            "model_version": MODEL_VERSION,
+            "model_version": self.classifier["model_name"],
             "timestamp": datetime.now().isoformat(),
         }
 
@@ -181,9 +136,9 @@ class DiabetesFactChecker:
                 row = insert_analysis(
                     input_text=claim,
                     classification=classification,
-                    confidence_score=confidence,
+                    confidence_score=p_fake,
                     matched_sources=evidence,
-                    model_version=MODEL_VERSION,
+                    model_version=result["model_version"],
                 )
                 result["db_id"] = str(row["id"])
                 print("  ✔ Resultado salvo no PostgreSQL")
@@ -215,13 +170,12 @@ class DiabetesFactChecker:
     def _print_result(result: dict):
         """Formata e imprime o resultado."""
         label = result["classification"]
-        confidence = result["confidence_score"]
+        p_fake = result["p_fake"]
 
-        # Emojis por classificação
-        emoji = {"FAKE": "❌", "REAL": "✅", "INCONCLUSIVE": "⚠️"}.get(label, "❓")
+        emoji = {"FAKE": "❌", "REAL": "✅"}.get(label, "❓")
 
         print(f"\n{emoji} Classificação: {label}")
-        print(f"   Confiança: {confidence:.1%}")
+        print(f"   P(FAKE): {p_fake:.1%}  (threshold={result['threshold']})")
 
         if result["matched_sources"]:
             print(f"\n   📚 Evidências encontradas ({len(result['matched_sources'])}):")
@@ -255,11 +209,7 @@ def main():
             PROJECT_ROOT, "data", "processed",
             "diabetes_nutrition_dataset_train.csv"
         )
-        test_csv = os.path.join(
-            PROJECT_ROOT, "data", "processed",
-            "diabetes_nutrition_dataset_test.csv"
-        )
-        checker.train(train_csv, test_csv)
+        checker.train(train_csv)
         return
 
     if args.interactive:

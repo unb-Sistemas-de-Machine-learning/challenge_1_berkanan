@@ -24,9 +24,6 @@ data/raw/guidelines/*.txt
 data/raw/factchecks.json
 knowledge_base/chromadb/
 
-# Modelo treinado
-data/processed/classifier.joblib
-
 # Docker volumes
 postgres_data/
 
