@@ -22,3 +22,7 @@ fpdf2>=2.7
 psycopg2-binary>=2.9
 SQLAlchemy>=2.0
 python-dotenv>=1.0
+
+# Gemini LLM API
+google-genai>=1.0
+langchain-google-genai>=2.0
