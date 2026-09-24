@@ -7,7 +7,7 @@ beautifulsoup4>=4.12
 requests>=2.31
 tqdm>=4.65
 
-# LangChain + Embeddings
+# LangChain + Embeddings (retrieval no ChromaDB — usado por fact_checker.py/batch_ingest.py)
 langchain-community>=0.4
 langchain-huggingface>=1.0
 langchain-text-splitters>=1.0
@@ -22,7 +22,3 @@ fpdf2>=2.7
 psycopg2-binary>=2.9
 SQLAlchemy>=2.0
 python-dotenv>=1.0
-
-# Gemini LLM API
-google-genai>=1.0
-langchain-google-genai>=2.0
