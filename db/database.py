@@ -27,7 +27,7 @@ DB_NAME = os.getenv("DB_NAME", "factchecker")
 DB_USER = os.getenv("DB_USER", "admin")
 DB_PASS = os.getenv("DB_PASS", "adminpassword")
 
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # SQLAlchemy Engine e SessionFactory
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
