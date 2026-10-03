@@ -1,0 +1,85 @@
+{
+  "model": "MultinomialNB",
+  "best_params": {
+    "clf__alpha": 0.1,
+    "clf__fit_prior": true,
+    "tfidf__min_df": 1,
+    "tfidf__ngram_range": [
+      1,
+      2
+    ],
+    "tfidf__sublinear_tf": true
+  },
+  "calibration": {
+    "method": "out-of-fold CV no treino, sweep de threshold 0.05-0.95",
+    "min_precision_target": 0.7,
+    "fallback_used": false,
+    "chosen_threshold": 0.29
+  },
+  "train_set": {
+    "path": "data\\processed\\diabetes_nutrition_dataset_train.csv",
+    "n_examples": 128,
+    "label_counts": {
+      "FAKE": 82,
+      "REAL": 46
+    }
+  },
+  "test_set": {
+    "path": "data\\processed\\diabetes_nutrition_dataset_test.csv",
+    "n_examples": 34,
+    "label_counts": {
+      "FAKE": 22,
+      "REAL": 12
+    }
+  },
+  "test_metrics_default_threshold_0_5": {
+    "threshold": 0.5,
+    "precision_fake": 0.9565,
+    "recall_fake": 1.0,
+    "f1_fake": 0.9778,
+    "f1_macro": 0.9671,
+    "confusion_matrix": {
+      "labels": [
+        "FAKE",
+        "REAL"
+      ],
+      "matrix": [
+        [
+          22,
+          0
+        ],
+        [
+          1,
+          11
+        ]
+      ]
+    },
+    "false_negatives": [],
+    "false_negative_count": 0
+  },
+  "test_metrics_calibrated_threshold": {
+    "threshold": 0.29,
+    "precision_fake": 0.88,
+    "recall_fake": 1.0,
+    "f1_fake": 0.9362,
+    "f1_macro": 0.8967,
+    "confusion_matrix": {
+      "labels": [
+        "FAKE",
+        "REAL"
+      ],
+      "matrix": [
+        [
+          22,
+          0
+        ],
+        [
+          3,
+          9
+        ]
+      ]
+    },
+    "false_negatives": [],
+    "false_negative_count": 0
+  }
+}

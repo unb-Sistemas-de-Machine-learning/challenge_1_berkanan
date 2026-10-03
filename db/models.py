@@ -58,6 +58,12 @@ class AnalysisHistory(Base):
     user_feedback: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     model_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
+    # Colunas RAG adicionadas
+    llm_explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    llm_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    rag_sources_count: Mapped[int | None] = mapped_column(nullable=True, default=0)
+    response_time_ms: Mapped[int | None] = mapped_column(nullable=True)
+
     __table_args__ = (
         CheckConstraint(
             "classification IN ('REAL', 'FAKE', 'INCONCLUSIVE', 'PARTIALLY_TRUE')",

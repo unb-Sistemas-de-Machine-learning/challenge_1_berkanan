@@ -1,0 +1,16 @@
+# requirements-rag.txt — dependências do protótipo de RAG + LLM generativo
+# (scripts/llm_client.py e a futura orquestração LangChain + Gemini)
+# Autossuficiente: instala tudo que esse pedaço precisa, sem depender
+# de rodar requirements.txt ou requirements-api.txt antes.
+
+# Retrieval (busca no ChromaDB)
+chromadb>=0.4
+langchain-community>=0.4
+langchain-huggingface>=1.0
+sentence-transformers>=2.2
+
+# Geração (Gemini)
+google-genai>=1.0
+langchain-google-genai>=2.0
+
+python-dotenv>=1.0
