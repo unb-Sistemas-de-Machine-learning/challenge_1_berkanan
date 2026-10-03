@@ -174,22 +174,28 @@ Sistema de verificação de alegações sobre diabetes e nutrição usando IA, R
 
 ## Arquitetura
 
-```
-alegação do usuário
-        │
-        ▼
-┌───────────────┐      ┌─────────────────┐
-│ Classificador │      │    ChromaDB     │
-│ TF-IDF + LR   │      │ (base de conhe- │
-│ FAKE/REAL      │◄────►│  cimento RAG)   │
-└───────┬───────┘      └────────┬────────┘
-        │                       │
-        ▼                       ▼
+```text
+       Alegação do Usuário
+                │
+                ▼
 ┌───────────────────────────────────────┐
-│         fact_checker.py               │
-│  - Classificação + Confiança          │
-│  - Evidências da base oficial         │
-│  - Persistência no PostgreSQL         │
+│         Streamlit (Frontend)          │
+└───────────────────┬───────────────────┘
+                    │ REST API (/api/analyze)
+                    ▼
+┌───────────────────────────────────────┐
+│           FastAPI (Backend)           │
+│             (api/main.py)             │
+└───────────────────┬───────────────────┘
+                    │
+                    ▼
+┌───────────────────────────────────────┐
+│        fact_checker_service.py        │
+│                                       │
+│ 1. Classificação Base (MultinomialNB) │
+│ 2. Busca RAG (ChromaDB)               │
+│ 3. Síntese de Resposta (Gemini LLM)   │
+│ 4. Persistência (PostgreSQL)          │
 └───────────────────────────────────────┘
 ```
 
@@ -227,6 +233,12 @@ python scripts/run_pipeline.py
 
 # Reutilizar os arquivos já coletados
 python scripts/run_pipeline.py --skip-scrape
+
+# 9. Rodar o Backend (FastAPI)
+uvicorn api.main:app --reload
+
+# 10. Rodar o Frontend (Streamlit) em outro terminal
+streamlit run streamlit_app.py
 ```
 
 O pipeline paralelo espera a raspagem terminar e então executa o treinamento
@@ -235,44 +247,40 @@ que arquivos ainda incompletos sejam processados e reduz o tempo total.
 
 ## Estrutura do Projeto
 
-```
+```text
 challenge_1_berkanan/
-├── data/
-│   ├── raw/
-│   │   ├── guidelines/       # Textos oficiais raspados (SBD, MS)
-│   │   └── factchecks.json   # Manchetes de fact-checking
-│   └── processed/
-│       ├── *_full.csv         # Dataset completo
-│       ├── *_train.csv        # Split de treino (80%)
-│       ├── *_test.csv         # Split de teste (20%)
-│       └── classifier.joblib # Modelo treinado
-├── db/
-│   ├── schema.sql             # DDL do PostgreSQL
-│   └── database.py            # Camada de acesso ao banco
+├── api/                       # Backend FastAPI refatorado
+│   ├── main.py                # Ponto de entrada da API
+│   ├── routes/                # Definição de endpoints (/analyze, /history)
+│   ├── schemas/               # Modelos de validação Pydantic
+│   └── services/              # Integração do RAG como serviço
+├── data/                      # Datasets e arquivos processados
+├── db/                        # Integração com PostgreSQL via SQLAlchemy
 ├── knowledge_base/
-│   └── chromadb/              # Vetores persistidos
+│   └── chromadb/              # Vetores persistidos para o RAG
 ├── scripts/
 │   ├── scraper.py             # Raspagem de fontes oficiais
-│   ├── batch_ingest.py        # Ingestão no ChromaDB
 │   ├── dataset_builder.py     # Geração do dataset rotulado
-│   ├── run_pipeline.py        # Treino e embeddings em paralelo
-│   └── fact_checker.py        # Motor central (treino + inferência)
+│   ├── fact_checker.py        # Motor ML + ChromaDB integrados
+│   └── llm_client.py          # Cliente Gemini da Google
+├── streamlit_app.py           # Interface de usuário (Frontend Web)
 ├── docker-compose.yml         # PostgreSQL via Docker
-├── requirements.txt
-├── .gitignore
+├── Procfile                   # Comando de execução para Cloud Deploy
+├── requirements.txt           # Dependências consolidadas
 └── README.md
 ```
 
 ## Componentes
 
-| Componente | Arquivo | Descrição |
+| Componente | Arquivo/Pasta | Descrição |
 |---|---|---|
-| **Scraper** | `scraper.py` | Raspa 100 referências oficiais (SBD, MS, OMS, CDC, NIDDK, MedlinePlus, NHS, ADA, IDF, Mayo Clinic e outras) + fact-checks; possui retries para HTTP 504 |
-| **Ingestão** | `batch_ingest.py` | Processa .pdf e .txt, embeddings multilíngues, dedup por hash |
-| **Dataset** | `dataset_builder.py` | 160+ exemplos curados e fact-checks, dedup, train/test split |
-| **Classificador** | `fact_checker.py` | TF-IDF + Logistic Regression + busca RAG no ChromaDB |
-| **Pipeline paralelo** | `run_pipeline.py` | Treina o classificador enquanto gera embeddings após a coleta |
-| **Banco** | `database.py` | Context-manager, rollback automático, INSERT/SELECT |
+| **Frontend** | `streamlit_app.py` | Interface interativa para o usuário testar alegações. |
+| **Backend API** | `api/` | Servidor FastAPI com rotas de análise com modelo Pydantic. |
+| **LLM Engine** | `scripts/llm_client.py` | Integração com Google Gemini para gerar explicações embasadas. |
+| **Classificador** | `scripts/fact_checker.py` | Modelo ML calibrado para recall máximo + busca RAG no ChromaDB. |
+| **Scraper** | `scripts/scraper.py` | Raspa referências oficiais (SBD, MS, OMS) e fact-checks. |
+| **Dataset** | `scripts/dataset_builder.py` | Consolida dados raspados e gera os splits de treino/teste. |
+| **Banco de Dados**| `db/database.py` | Context-manager e modelagem com SQLAlchemy / PostgreSQL. |
 
 ### Estado atual da base
 
