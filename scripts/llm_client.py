@@ -69,11 +69,11 @@ Confiança do Modelo: {confidence:.1%} de ser FAKE
         prompt = self._build_prompt(claim, classification, confidence, evidence)
         
         try:
-            interaction = self.client.interactions.create(
+            response = self.client.models.generate_content(
                 model=self.model_name,
-                input=prompt
+                contents=prompt
             )
-            return interaction.output_text
+            return response.text
         except Exception as e:
             print(f"Erro ao chamar API Gemini: {e}")
             return f"Houve um problema ao gerar a explicação detalhada com o LLM. (Erro: {e})"

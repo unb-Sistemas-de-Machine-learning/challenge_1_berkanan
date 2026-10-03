@@ -75,6 +75,8 @@ if verificar:
                 label = result["label"]
                 p_fake = result["p_fake"]
                 threshold = result["threshold"]
+                llm_explanation = result.get("llm_explanation")
+                matched_sources = result.get("matched_sources", [])
 
                 st.divider()
 
@@ -92,8 +94,22 @@ if verificar:
                     )
 
                 st.divider()
+
+                if llm_explanation:
+                    st.markdown("### 🤖 Explicação do Assistente")
+                    st.info(llm_explanation)
+
+                if matched_sources:
+                    with st.expander("📚 Fontes Oficiais Consultadas"):
+                        for i, src in enumerate(matched_sources, 1):
+                            st.markdown(f"**{i}. Fonte:** `{src.get('source', 'Desconhecida')}`")
+                            st.markdown(f"> _{src.get('text', '')}..._")
+                            st.markdown("---")
+                
+                st.divider()
+                st.markdown("### 🔬 Detalhes do Modelo de Machine Learning")
                 col_a, col_b, col_c = st.columns(3)
-                col_a.metric("Classificação", label)
+                col_a.metric("Classificação Base", label)
                 col_b.metric("Prob. FAKE", f"{p_fake:.1%}")
                 col_c.metric("Threshold", f"{threshold:.2f}")
 

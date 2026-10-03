@@ -31,6 +31,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
 import classifier as clf  # scripts/classifier.py — treino/inferência
+from llm_client import GeminiClient
 
 # Modelo multilíngue — mesmo do batch_ingest
 EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
@@ -44,6 +45,7 @@ class DiabetesFactChecker:
         self.model_path = model_path or clf.MODEL_PATH
         self.classifier = None
         self.vectorstore = None
+        self.llm = GeminiClient()
 
     # ------------------------------------------------------------------
     # 1. Treinamento do classificador
@@ -119,12 +121,21 @@ class DiabetesFactChecker:
         # Busca evidências no ChromaDB
         evidence = self.search_evidence(claim)
 
+        # Gera a explicação com o LLM
+        explanation = self.llm.generate_fact_check_response(
+            claim=claim,
+            classification=classification,
+            confidence=p_fake,
+            evidence=evidence
+        )
+
         result = {
             "input_text": claim,
             "classification": classification,
             "p_fake": p_fake,
             "threshold": threshold,
             "matched_sources": evidence,
+            "llm_explanation": explanation,
             "model_version": self.classifier["model_name"],
             "timestamp": datetime.now().isoformat(),
         }
@@ -184,6 +195,9 @@ class DiabetesFactChecker:
                 print(f"         \"{src['text'][:120]}...\"")
         else:
             print("\n   📚 Nenhuma evidência encontrada na base de conhecimento.")
+
+        print("\n   🤖 Explicação do RAG (Gemini):")
+        print(f"      {result.get('llm_explanation', 'Não disponível')}")
 
 
 # ======================================================================
