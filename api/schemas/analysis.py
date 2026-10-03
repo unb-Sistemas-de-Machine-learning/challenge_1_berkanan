@@ -18,6 +18,8 @@ class AnalysisResponse(BaseModel):
     input_text: str
     classification: str
     confidence_score: float
+    threshold: float
+    llm_explanation: str | None = None
     matched_sources: list[Any]
     model_version: str
     timestamp: datetime | None = None

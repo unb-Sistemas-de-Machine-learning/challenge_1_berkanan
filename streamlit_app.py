@@ -18,8 +18,8 @@ import streamlit as st
 # Configuração                                                                 #
 # --------------------------------------------------------------------------- #
 API_URL = os.getenv("API_URL", "http://localhost:8000")
-PREDICT_URL = f"{API_URL}/predict"
-HEALTH_URL = f"{API_URL}/health"
+PREDICT_URL = f"{API_URL}/api/analyze"
+HEALTH_URL = f"{API_URL}/api/health"
 
 st.set_page_config(
     page_title="Fact-Checker Diabetes e Nutrição",
@@ -72,8 +72,8 @@ if verificar:
                 resp.raise_for_status()
                 result = resp.json()
 
-                label = result["label"]
-                p_fake = result["p_fake"]
+                label = result.get("classification", "UNKNOWN")
+                p_fake = result.get("confidence_score", 0.0)
                 threshold = result["threshold"]
                 llm_explanation = result.get("llm_explanation")
                 matched_sources = result.get("matched_sources", [])

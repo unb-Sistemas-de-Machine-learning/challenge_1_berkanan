@@ -57,6 +57,8 @@ async def analyze(
         input_text=record.input_text,
         classification=record.classification,
         confidence_score=record.confidence_score,
+        threshold=result.get("threshold", 0.0),
+        llm_explanation=result.get("llm_explanation"),
         matched_sources=record.matched_sources,
         model_version=record.model_version,
         timestamp=record.analysis_date,
