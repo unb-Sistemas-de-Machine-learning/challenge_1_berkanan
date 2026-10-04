@@ -33,7 +33,9 @@ services:
       APP_ENV: ${APP_ENV:-production}
       ENV: ${APP_ENV:-production}
       PORT: ${PORT:-8000}
-      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://${DB_USER:-admin}:${DB_PASS:-adminpassword}@db:5432/${DB_NAME:-factchecker}}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DATABASE_URL: "postgresql+psycopg2://${DB_USER:-admin}:${DB_PASS:-adminpassword}@db:5432/${DB_NAME:-factchecker}"
       FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
       CHROMA_PERSIST_DIRECTORY: /var/chroma
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
@@ -46,6 +48,20 @@ services:
       - "${PORT:-8000}:8000"
     volumes:
       - chroma_data:/var/chroma
+
+  # Perfil prod: frontend estático servido pelo nginx, com proxy para a API.
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    profiles: ["prod"]
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

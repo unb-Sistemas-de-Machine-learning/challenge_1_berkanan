@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f1f5f6;
+  --bg-accent: #e4eef0;
+  --surface: #ffffff;
+  --surface-2: #f7fbfb;
+  --ink: #12242c;
+  --muted: #5d717a;
+  --faint: #7c9098;
+  --line: rgba(18, 36, 44, 0.1);
+  --accent: #0f6f6a;
+  --accent-soft: rgba(15, 111, 106, 0.12);
+  --glow: rgba(15, 111, 106, 0.18);
+  --real: #0f766e;
+  --real-bg: rgba(15, 118, 110, 0.1);
+  --fake: #b42318;
+  --fake-bg: rgba(180, 35, 24, 0.1);
+  --partial: #b45309;
+  --partial-bg: rgba(180, 83, 9, 0.12);
+  --inconclusive: #4f46e5;
+  --inconclusive-bg: rgba(79, 70, 229, 0.1);
+  --shadow: 0 1px 2px rgba(16, 32, 39, 0.06), 0 12px 32px rgba(16, 32, 39, 0.06);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #061014;
+  --bg-accent: #0a1c24;
+  --surface: #0c1b22;
+  --surface-2: #12262f;
+  --ink: #e7f2f5;
+  --muted: #93a8b0;
+  --faint: #6e858e;
+  --line: rgba(180, 220, 230, 0.12);
+  /* Accent mais escuro: antes #2dd4bf (teal-400), agora #0d9488 (teal-600) */
+  --accent: #0d9488;
+  --accent-soft: rgba(13, 148, 136, 0.18);
+  --glow: rgba(13, 148, 136, 0.22);
+  --real: #5eead4;
+  --real-bg: rgba(45, 212, 191, 0.12);
+  --fake: #fca5a5;
+  --fake-bg: rgba(248, 113, 113, 0.12);
+  --partial: #fcd34d;
+  --partial-bg: rgba(252, 211, 77, 0.12);
+  --inconclusive: #c4b5fd;
+  --inconclusive-bg: rgba(167, 139, 250, 0.12);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+textarea,
+input,
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.berkanan-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.berkanan-scroll::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
+}
+
+textarea:focus,
+textarea:focus-visible {
+  outline: none;
+}

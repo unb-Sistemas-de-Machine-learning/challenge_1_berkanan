@@ -179,7 +179,7 @@ Sistema de verificação de alegações sobre diabetes e nutrição usando IA, R
                 │
                 ▼
 ┌───────────────────────────────────────┐
-│         Streamlit (Frontend)          │
+│         React + Vite (Frontend)       │
 └───────────────────┬───────────────────┘
                     │ REST API (/api/analyze)
                     ▼
@@ -246,7 +246,7 @@ para iniciar a API.
 ### PostgreSQL
 
 ```powershell
-docker compose up -d
+docker compose --profile dev up -d
 docker compose ps
 docker compose exec -T db pg_isready -U admin -d factchecker
 ```
@@ -268,13 +268,13 @@ permanentemente o volume e os dados locais.
 ### Iniciar e verificar a API
 
 ```powershell
-python -m uvicorn api.main:app --reload
+uvicorn api.main:app --reload --port 8000
 ```
 
-Abra `http://127.0.0.1:8000/docs`. A API permite, por padrão, as origens
-`http://localhost:3000` e `http://127.0.0.1:3000`; sobrescreva
-`FRONTEND_ORIGINS` com uma lista separada por vírgulas para outros ambientes.
-Swagger funciona localmente sem configuração adicional.
+Abra `http://localhost:8000/docs`. O padrão de `FRONTEND_ORIGINS` inclui as
+origens do Vite (`http://localhost:5173` e `http://127.0.0.1:5173`) e
+`http://localhost:3000`; sobrescreva a variável, se necessário, com uma lista
+separada por vírgulas.
 
 Com a API e o PostgreSQL ativos e o índice Chroma carregado, rode em outro
 terminal:
@@ -310,39 +310,45 @@ O modelo de embeddings é multilíngue
 
 ## Visão geral do ambiente e deploy
 
-Este repositório foi preparado para operar em dois contextos: desenvolvimento local e produção/deploy. Em desenvolvimento, a API continua sendo executada com FastAPI em `http://localhost:8000`, o PostgreSQL roda via Docker Compose e a CORS aceita `http://localhost:5173` e `http://localhost:3000` por padrão. Em produção, o backend pode ser implantado em Render ou em infraestrutura equivalente usando o arquivo `render.yaml` e variáveis obrigatórias declaradas no repositório.
+Este monorepo opera em desenvolvimento local e produção. O backend FastAPI
+continua na raiz, com PostgreSQL pelo Docker Compose; o frontend React/Vite fica
+em `frontend/`. Em desenvolvimento, a API atende em `http://localhost:8000` e
+o Vite em `http://localhost:5173`. Em produção, o Render publica a API e o site
+estático separadamente; Docker Compose também pode subir os três serviços.
 
 ### Pré-requisitos
 
 - Python 3.13
+- Node.js 20 ou compatível com o `package-lock.json` do frontend
 - Docker Desktop + Docker Compose v2
 - Chave válida do Gemini em `GEMINI_API_KEY`
 - Acesso à internet para baixar o modelo de embeddings e popular o ChromaDB
-- Opcionalmente, um frontend futuro em `frontend/` ou `apps/web`
 
 ### Desenvolvimento local
 
-1. Copie o exemplo de ambiente: `Copy-Item .env.example .env` (ou `cp .env.example .env` em shell Unix).
-2. Ajuste os valores de `.env` conforme o ambiente local. O arquivo real não deve ser versionado.
-3. Suba o banco local com o perfil de desenvolvimento:
+O fluxo usa dois terminais. No primeiro, na raiz do repositório:
 
 ```powershell
+Copy-Item .env.example .env
+.\venv\Scripts\Activate.ps1
 docker compose --profile dev up -d
+uvicorn api.main:app --reload --port 8000
 ```
 
-4. Inicie a API:
+No segundo terminal:
 
 ```powershell
-uvicorn api.main:app --reload
+cd frontend
+npm install
+npm run dev
 ```
 
-5. A API fica em `http://localhost:8000` e o Swagger em `http://localhost:8000/docs`.
-6. Se necessário para popular a base RAG, rode os scripts de coleta/ingestão:
-
-```powershell
-python scripts/scraper.py
-python scripts/batch_ingest.py
-```
+O backend fica em `http://localhost:8000` e o frontend em
+`http://localhost:5173`. Em desenvolvimento, as chamadas relativas a `/api` e
+`/health` passam pelo proxy do Vite para `localhost:8000`, evitando CORS no
+navegador; o padrão do backend também permite a origem `http://localhost:5173`.
+Para criar o índice Chroma local, veja a seção **Fluxo do zero** no fim deste
+documento.
 
 ### Variáveis de ambiente
 
@@ -360,38 +366,60 @@ python scripts/batch_ingest.py
 | `LLM_MODEL` | Sim | `gemini-3.8-flash` | Modelo LLM atual utilizado pela aplicação. |
 | `LLM_MAX_RETRIES` | Não | `3` | Quantidade de tentativas para fallback de LLM. |
 | `FRONTEND_ORIGINS` | Não em dev | `http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173` | Lista separada por vírgulas de origens permitidas pelo CORS. |
+| `VITE_API_URL` | Em deploy estático | `https://berkanan-api.onrender.com` | URL pública da API compilada no frontend; vazia em dev usa o proxy do Vite. |
+| `BACKEND_URL` | Não no Compose local | `http://backend:8000` | URL interna lida pelo nginx do frontend no perfil prod. |
 | `APP_ENV` / `ENV` | Não | `development` | Declara se o ambiente corrente é local ou produção. |
 | `PORT` | Não | `8000` | Porta do backend quando executado em container ou hosting. |
 
-### Como adicionar o frontend futuro
-
-O monorepo pode receber um subprojeto `frontend/` no mesmo repositório, com um app Next.js ou Vite/React. Em desenvolvimento, o frontend deve apontar para `http://localhost:5173` (Vite) ou `http://localhost:3000` (Next) e a API precisa permitir essas origens via `FRONTEND_ORIGINS`. Em produção, o frontend usa domínio próprio e a API recebe a origem do deploy em `FRONTEND_ORIGINS`.
-
-Recomendação de organização:
+### Estrutura do monorepo
 
 ```text
-/
-├── api/
-├── frontend/
-├── db/
-├── data/
-├── knowledge_base/
-├── models/
-├── scripts/
-└── docker-compose.yml
+.
+├── api/                    # FastAPI e serviços do backend
+├── db/                     # PostgreSQL, schema e migrations
+├── scripts/                # Coleta, ingestão e utilitários
+├── frontend/               # React + Vite + Tailwind
+├── data/                   # Dados locais
+├── knowledge_base/         # Índice ChromaDB
+├── Dockerfile              # Imagem do backend
+├── docker-compose.yml      # Perfis dev/prod
+└── render.yaml             # Backend, frontend e banco no Render
 ```
 
-Se o frontend for Vite, configure proxy para `/api` em desenvolvimento; se for Next.js, mantenha a API em porta separada e ajuste `FRONTEND_ORIGINS` no `.env`.
+O `package-lock.json` é a fonte de dependências do frontend nos builds npm;
+`pnpm-lock.yml` também existe no repositório, mas não é usado neste fluxo.
 
-### Deploy em produção
+### Produção local (Docker Compose)
 
-O deploy pode ser feito com Render usando `render.yaml` já atualizado. Os passos principais são:
+Com o `.env` do backend configurado na raiz, suba a stack de produção local:
 
-1. Conecte o repositório ao Render.
-2. Garanta que as variáveis sensíveis sejam preenchidas via dashboard ou via `render.yaml`/configuração do serviço.
-3. Use o serviço Postgres gerenciado e deixe o `DATABASE_URL` apontando para ele.
-4. Monte um disco persistente em `/var/chroma` para manter o índice do Chroma.
-5. Utilize `uvicorn api.main:app --host 0.0.0.0 --port $PORT` como comando de start.
+```powershell
+docker compose --profile prod up -d --build
+```
+
+No perfil `prod`, o Compose sobrescreve `DB_HOST`, `DB_PORT` e `DATABASE_URL`
+do `.env` para usar o hostname `db` na rede interna; o `.env` local continua
+sendo usado pelo backend executado no host em desenvolvimento.
+O frontend fica em `http://localhost:5173`. O nginx recebe
+`BACKEND_URL=http://backend:8000` pelo Compose e encaminha `/api` e `/health`
+pela rede interna; não é necessário expor a URL interna ao navegador.
+
+### Deploy no Render
+
+Conecte o repositório ao Render usando o `render.yaml`. Ele define o backend
+Python, o banco PostgreSQL e um site estático Vite com `rootDir: frontend`.
+Configure no painel:
+
+- **Backend:** `GEMINI_API_KEY` com a chave real; `DATABASE_URL` com a conexão
+  do PostgreSQL gerenciado; `FRONTEND_ORIGINS` com a origem pública exata do
+  site estático (por exemplo, `https://berkanan-frontend.onrender.com`).
+- **Frontend (Static Site):** `VITE_API_URL` com a URL pública do backend
+  (por exemplo, `https://berkanan-api.onrender.com`).
+
+O Render compila o frontend com `npm install && npm run build` e publica
+`frontend/dist`. Não inclua barra final nem caminhos como `/api` no valor de
+`VITE_API_URL`; a aplicação concatena os caminhos dos endpoints. O backend
+mantém um disco persistente em `/var/chroma` para o índice vetorial.
 
 A imagem Docker também pode ser usada em qualquer provedor que trate containers, com o mesmo conjunto de variáveis de ambiente.
 
@@ -401,6 +429,7 @@ A imagem Docker também pode ser usada em qualquer provedor que trate containers
 .
 ├── api/                     # FastAPI e serviços do backend
 ├── db/                      # PostgreSQL, schema e modelos
+├── frontend/                # React + Vite
 ├── data/                    # Dados e bases locais
 ├── knowledge_base/          # Índice vetorial do ChromaDB
 ├── models/                  # Artefatos do modelo e relatórios
@@ -425,3 +454,48 @@ A imagem Docker também pode ser usada em qualquer provedor que trate containers
 ### Aviso acadêmico
 
 Este sistema é uma ferramenta de apoio para verificação de informações e não substitui orientação médica, nutricional ou profissional de saúde. O conteúdo gerado deve ser interpretado com crítico e sempre em conjunto com fontes confiáveis ou profissionais habilitados.
+
+## Fluxo do zero
+
+Os comandos abaixo são para PowerShell no Windows. Substitua a URL pelo
+endereço real do repositório. No primeiro terminal, clone e configure o
+backend:
+
+```powershell
+git clone https://github.com/unb-Sistemas-de-Machine-learning/challenge_1_berkanan.git
+cd challenge_1_berkanan
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+notepad .env
+```
+
+Preencha `GEMINI_API_KEY` se quiser respostas com explicação Gemini; confira
+`DATABASE_URL` e `FRONTEND_ORIGINS` no `.env`. Ainda no primeiro terminal,
+baixe as fontes e popule o índice Chroma:
+
+```powershell
+python scripts/scraper.py
+python scripts/batch_ingest.py
+docker compose --profile dev up -d
+uvicorn api.main:app --reload --port 8000
+```
+
+Em um segundo terminal, suba o frontend em modo de desenvolvimento:
+
+```powershell
+cd challenge_1_berkanan\frontend
+npm install
+npm run dev
+```
+
+Abra `http://localhost:5173`; a API e a documentação ficam em
+`http://localhost:8000` e `http://localhost:8000/docs`. Para subir a stack
+containerizada de produção local em vez dos dois servidores de desenvolvimento,
+configure o `.env` da raiz e execute, a partir dela:
+
+```powershell
+docker compose --profile prod up -d --build
+```

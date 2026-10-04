@@ -1,0 +1,8 @@
+# Arquivos locais e artefatos não necessários na imagem do frontend.
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.md
+.git/

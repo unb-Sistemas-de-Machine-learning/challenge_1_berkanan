@@ -37,6 +37,21 @@ services:
       - key: EMBEDDING_MODEL_NAME
         value: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
 
+# Frontend Vite servido como site estático; configure VITE_API_URL no painel.
+  - type: web
+    name: berkanan-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+
 # Banco PostgreSQL gerenciado opcional para produção.
 databases:
   - name: berkanan-db
