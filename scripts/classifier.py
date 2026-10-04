@@ -29,7 +29,10 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-from train_model import OFF_SCOPE_HASHES, build_search_space
+try:
+    from train_model import OFF_SCOPE_HASHES, build_search_space
+except ImportError:
+    from scripts.train_model import OFF_SCOPE_HASHES, build_search_space
 
 _ROOT = Path(__file__).resolve().parent.parent  # raiz do projeto
 MODEL_PATH = _ROOT / "models" / "classifier_v2.joblib"

@@ -199,106 +199,229 @@ Sistema de verificação de alegações sobre diabetes e nutrição usando IA, R
 └───────────────────────────────────────┘
 ```
 
-## Quick Start
+## Instalação e execução do backend
 
-```bash
-# 1. Criar e ativar ambiente virtual
+### Pré-requisitos
+
+- Python **3.13.3** (versão verificada neste projeto) e `venv`.
+- Docker Desktop com Docker Compose v2.
+- Acesso à internet na primeira criação dos embeddings (download do modelo Hugging Face).
+- No Windows, instale o **Microsoft Visual C++ Redistributable 2015–2022 x64** antes de carregar PyTorch. O erro `WinError 126` envolvendo `shm.dll` indica esse pré-requisito do runtime nativo; não copie DLLs para o repositório.
+- `HF_TOKEN` é opcional. Sem ele, o Hugging Face Hub pode avisar sobre requisições não autenticadas, mas modelos públicos continuam disponíveis.
+
+### Ambiente Python e configuração
+
+No PowerShell:
+
+```powershell
+git clone <url-do-repositorio>
+cd challenge_1_berkanan
 python -m venv venv
-.\venv\Scripts\activate    # Windows
-source venv/bin/activate   # Linux/Mac
-
-# 2. Instalar dependências
-pip install -r requirements.txt
-
-# 3. Raspar dados oficiais (SBD, Ministério da Saúde, OMS, CDC e outras instituições)
-python scripts/scraper.py
-
-# 4. Ingerir no ChromaDB
-python scripts/batch_ingest.py
-
-# 5. Gerar dataset de treino
-python scripts/dataset_builder.py
-
-# 6. Treinar o classificador
-python scripts/fact_checker.py --train
-
-# 7. Verificar uma alegação
-python scripts/fact_checker.py "Chá de manga cura diabetes"
-
-# 8. Modo interativo
-python scripts/fact_checker.py --interactive
-
-# Pipeline completo: coleta e, depois, dataset/treino + embeddings em paralelo
-python scripts/run_pipeline.py
-
-# Reutilizar os arquivos já coletados
-python scripts/run_pipeline.py --skip-scrape
-
-# 9. Rodar o Backend (FastAPI)
-uvicorn api.main:app --reload
-
-# 10. Rodar o Frontend (Streamlit) em outro terminal
-streamlit run streamlit_app.py
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-O pipeline paralelo espera a raspagem terminar e então executa o treinamento
-do classificador enquanto gera os embeddings e atualiza o ChromaDB. Isso evita
-que arquivos ainda incompletos sejam processados e reduz o tempo total.
+No Git Bash para Windows, a ativação equivalente é `source venv/Scripts/activate`.
+Edite `.env` se os valores locais forem diferentes. Nunca versione esse arquivo
+nem coloque uma chave real no README. `GEMINI_API_KEY` pode ficar vazia: nesse
+caso o backend mantém ML, recuperação RAG e persistência, mas retorna
+`llm_explanation: null`. Em 503/429 e outros erros transitórios, o cliente SDK
+faz até `LLM_MAX_RETRIES` tentativas com backoff exponencial; esgotadas as
+tentativas, a análise continua sem explicação LLM.
 
-## Estrutura do Projeto
+O ChromaDB e os textos raspados são dados locais ignorados pelo Git. Para uma
+instalação nova com evidências, baixe fontes oficiais e construa o índice:
+
+```powershell
+python scripts/scraper.py
+python scripts/batch_ingest.py
+```
+
+Esses passos precisam de internet e podem levar algum tempo. O modelo já
+treinado está em `models/classifier_v2.joblib`; não é necessário retreiná-lo
+para iniciar a API.
+
+### PostgreSQL
+
+```powershell
+docker compose up -d
+docker compose ps
+docker compose exec -T db pg_isready -U admin -d factchecker
+```
+
+`db/schema.sql` é o schema inicial completo e é executado pelo entrypoint
+oficial da imagem PostgreSQL **somente quando o volume de dados é criado**.
+As migrations em `db/migrations/` são upgrades manuais para bancos existentes;
+montá-las em uma subpasta de `docker-entrypoint-initdb.d` não as executa. Para
+atualizar um banco antigo, aplique a migration disponível:
+
+```powershell
+docker compose exec -T db psql -U admin -d factchecker -f /migrations/002_add_rag_columns.sql
+```
+
+A migration é repetível e atualiza também `rag_sources_count` de registros
+existentes. Não use `docker compose down -v` a menos que queira apagar
+permanentemente o volume e os dados locais.
+
+### Iniciar e verificar a API
+
+```powershell
+python -m uvicorn api.main:app --reload
+```
+
+Abra `http://127.0.0.1:8000/docs`. A API permite, por padrão, as origens
+`http://localhost:3000` e `http://127.0.0.1:3000`; sobrescreva
+`FRONTEND_ORIGINS` com uma lista separada por vírgulas para outros ambientes.
+Swagger funciona localmente sem configuração adicional.
+
+Com a API e o PostgreSQL ativos e o índice Chroma carregado, rode em outro
+terminal:
+
+```powershell
+python scripts/smoke_test.py
+```
+
+O teste consulta os dois endpoints de health, analisa “Canela cura diabetes?”,
+exige pelo menos uma fonte real, verifica a contagem e duração salvas e confirma
+que a análise aparece no histórico. Não exige resposta do Gemini. A API também
+expõe `GET /api/history`, `GET /api/health` e `GET /health`.
+
+### Dependências e componentes
+
+`requirements.txt` reúne as dependências de backend, ML e RAG; as versões
+instaladas/testadas neste ambiente incluem FastAPI 0.142.2, Pydantic 2.13.5,
+SQLAlchemy 2.1.3, ChromaDB 1.5.9, google-genai 2.28.0, sentence-transformers
+6.1.0 e PyTorch 2.14.1+cpu. A integração Chroma usa o pacote recomendado
+`langchain-chroma`; os scripts de ingestão e recuperação usam o mesmo pacote.
+O modelo de embeddings é multilíngue
+`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`.
+
+## Componentes principais
+
+| Componente | Localização | Responsabilidade |
+|---|---|---|
+| API | `api/` | FastAPI, contratos OpenAPI, análise e histórico. |
+| Serviço ML/RAG | `api/services/`, `scripts/fact_checker.py` | Classificador local, embeddings, busca Chroma e explicação Gemini opcional. |
+| Persistência | `db/` | Schema PostgreSQL, modelos SQLAlchemy e upgrades em `db/migrations/`. |
+| Dados/índice | `data/`, `knowledge_base/chromadb/` | Datasets e corpus/índice local do RAG; preparar conforme instalação acima. |
+| Modelo classificador | `models/classifier_v2.joblib` | Artefato de inferência já treinado. |
+
+## Visão geral do ambiente e deploy
+
+Este repositório foi preparado para operar em dois contextos: desenvolvimento local e produção/deploy. Em desenvolvimento, a API continua sendo executada com FastAPI em `http://localhost:8000`, o PostgreSQL roda via Docker Compose e a CORS aceita `http://localhost:5173` e `http://localhost:3000` por padrão. Em produção, o backend pode ser implantado em Render ou em infraestrutura equivalente usando o arquivo `render.yaml` e variáveis obrigatórias declaradas no repositório.
+
+### Pré-requisitos
+
+- Python 3.13
+- Docker Desktop + Docker Compose v2
+- Chave válida do Gemini em `GEMINI_API_KEY`
+- Acesso à internet para baixar o modelo de embeddings e popular o ChromaDB
+- Opcionalmente, um frontend futuro em `frontend/` ou `apps/web`
+
+### Desenvolvimento local
+
+1. Copie o exemplo de ambiente: `Copy-Item .env.example .env` (ou `cp .env.example .env` em shell Unix).
+2. Ajuste os valores de `.env` conforme o ambiente local. O arquivo real não deve ser versionado.
+3. Suba o banco local com o perfil de desenvolvimento:
+
+```powershell
+docker compose --profile dev up -d
+```
+
+4. Inicie a API:
+
+```powershell
+uvicorn api.main:app --reload
+```
+
+5. A API fica em `http://localhost:8000` e o Swagger em `http://localhost:8000/docs`.
+6. Se necessário para popular a base RAG, rode os scripts de coleta/ingestão:
+
+```powershell
+python scripts/scraper.py
+python scripts/batch_ingest.py
+```
+
+### Variáveis de ambiente
+
+| Nome | Obrigatória | Exemplo | Descrição |
+|---|---:|---|---|
+| `DATABASE_URL` | Sim em produção | `postgresql+psycopg2://user:pass@host:5432/db` | String completa de conexão com PostgreSQL. |
+| `DB_HOST` | Não | `localhost` | Host do banco local. |
+| `DB_PORT` | Não | `5432` | Porta do banco local. |
+| `DB_NAME` | Não | `factchecker` | Nome do banco. |
+| `DB_USER` | Não | `admin` | Usuário do banco. |
+| `DB_PASS` | Não | `adminpassword` | Senha do banco. |
+| `CHROMA_PERSIST_DIRECTORY` | Sim | `knowledge_base/chromadb` | Diretório persistente do ChromaDB. |
+| `EMBEDDING_MODEL_NAME` | Sim | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | Modelo de embedding utilizado pela busca por similaridade. |
+| `GEMINI_API_KEY` | Sim para explicação LLM | `""` | Chave da API Gemini. Obtenha em `https://aistudio.google.com/app/apikey`. |
+| `LLM_MODEL` | Sim | `gemini-3.8-flash` | Modelo LLM atual utilizado pela aplicação. |
+| `LLM_MAX_RETRIES` | Não | `3` | Quantidade de tentativas para fallback de LLM. |
+| `FRONTEND_ORIGINS` | Não em dev | `http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173` | Lista separada por vírgulas de origens permitidas pelo CORS. |
+| `APP_ENV` / `ENV` | Não | `development` | Declara se o ambiente corrente é local ou produção. |
+| `PORT` | Não | `8000` | Porta do backend quando executado em container ou hosting. |
+
+### Como adicionar o frontend futuro
+
+O monorepo pode receber um subprojeto `frontend/` no mesmo repositório, com um app Next.js ou Vite/React. Em desenvolvimento, o frontend deve apontar para `http://localhost:5173` (Vite) ou `http://localhost:3000` (Next) e a API precisa permitir essas origens via `FRONTEND_ORIGINS`. Em produção, o frontend usa domínio próprio e a API recebe a origem do deploy em `FRONTEND_ORIGINS`.
+
+Recomendação de organização:
 
 ```text
-challenge_1_berkanan/
-├── api/                       # Backend FastAPI refatorado
-│   ├── main.py                # Ponto de entrada da API
-│   ├── routes/                # Definição de endpoints (/analyze, /history)
-│   ├── schemas/               # Modelos de validação Pydantic
-│   └── services/              # Integração do RAG como serviço
-├── data/                      # Datasets e arquivos processados
-├── db/                        # Integração com PostgreSQL via SQLAlchemy
+/
+├── api/
+├── frontend/
+├── db/
+├── data/
 ├── knowledge_base/
-│   └── chromadb/              # Vetores persistidos para o RAG
+├── models/
 ├── scripts/
-│   ├── scraper.py             # Raspagem de fontes oficiais
-│   ├── dataset_builder.py     # Geração do dataset rotulado
-│   ├── fact_checker.py        # Motor ML + ChromaDB integrados
-│   └── llm_client.py          # Cliente Gemini da Google
-├── streamlit_app.py           # Interface de usuário (Frontend Web)
-├── docker-compose.yml         # PostgreSQL via Docker
-├── Procfile                   # Comando de execução para Cloud Deploy
-├── requirements.txt           # Dependências consolidadas
-└── README.md
+└── docker-compose.yml
 ```
 
-## Componentes
+Se o frontend for Vite, configure proxy para `/api` em desenvolvimento; se for Next.js, mantenha a API em porta separada e ajuste `FRONTEND_ORIGINS` no `.env`.
 
-| Componente | Arquivo/Pasta | Descrição |
-|---|---|---|
-| **Frontend** | `streamlit_app.py` | Interface interativa para o usuário testar alegações. |
-| **Backend API** | `api/` | Servidor FastAPI com rotas de análise com modelo Pydantic. |
-| **LLM Engine** | `scripts/llm_client.py` | Integração com Google Gemini para gerar explicações embasadas. |
-| **Classificador** | `scripts/fact_checker.py` | Modelo ML calibrado para recall máximo + busca RAG no ChromaDB. |
-| **Scraper** | `scripts/scraper.py` | Raspa referências oficiais (SBD, MS, OMS) e fact-checks. |
-| **Dataset** | `scripts/dataset_builder.py` | Consolida dados raspados e gera os splits de treino/teste. |
-| **Banco de Dados**| `db/database.py` | Context-manager e modelagem com SQLAlchemy / PostgreSQL. |
+### Deploy em produção
 
-### Estado atual da base
+O deploy pode ser feito com Render usando `render.yaml` já atualizado. Os passos principais são:
 
-- Catálogo configurado com **100 referências oficiais únicas**.
-- Dataset consolidado com **164 registros** (106 FAKE e 58 REAL).
-- Treinamento validado com **94% de acurácia** (F1-score 0.94) no conjunto de teste.
-- Embeddings multilíngues (`paraphrase-multilingual-MiniLM-L12-v2`) no ChromaDB.
+1. Conecte o repositório ao Render.
+2. Garanta que as variáveis sensíveis sejam preenchidas via dashboard ou via `render.yaml`/configuração do serviço.
+3. Use o serviço Postgres gerenciado e deixe o `DATABASE_URL` apontando para ele.
+4. Monte um disco persistente em `/var/chroma` para manter o índice do Chroma.
+5. Utilize `uvicorn api.main:app --host 0.0.0.0 --port $PORT` como comando de start.
 
-## PostgreSQL (opcional)
+A imagem Docker também pode ser usada em qualquer provedor que trate containers, com o mesmo conjunto de variáveis de ambiente.
 
-```bash
-# Subir o banco com Docker
-docker-compose up -d
+### Estrutura de pastas
 
-# O schema é aplicado automaticamente via docker-entrypoint-initdb.d
+```text
+.
+├── api/                     # FastAPI e serviços do backend
+├── db/                      # PostgreSQL, schema e modelos
+├── data/                    # Dados e bases locais
+├── knowledge_base/          # Índice vetorial do ChromaDB
+├── models/                  # Artefatos do modelo e relatórios
+├── scripts/                 # ETL, ingestão e utilitários
+├── tests/                   # Testes de integração e API
+├── .env.example             # Template de variáveis do ambiente
+├── docker-compose.yml       # Perfis dev/prod
+├── Dockerfile               # Imagem do backend
+├── render.yaml              # Configuração de deploy
+├── requirements*.txt        # Dependências Python
+├── README.md                # Documentação principal
+└── docs/                    # Documentação de ambientes
 ```
 
-## Modelo de Embeddings
+### Limitações conhecidas
 
-Usa `paraphrase-multilingual-MiniLM-L12-v2` (multilíngue, incluindo português) em vez do `all-MiniLM-L6-v2` (apenas inglês), garantindo qualidade na busca semântica de textos em português.
+- O dataset atual é pequeno para generalização ampla.
+- `p_fake` representa um score de risco/discordância e não uma probabilidade estatística de veracidade formal.
+- `llm_explanation` pode retornar `null` quando a chave do Gemini não está configurada ou a API falha.
+- O classificador é binário e não cobre toda a complexidade da avaliação clínica ou nutricional.
 
+### Aviso acadêmico
+
+Este sistema é uma ferramenta de apoio para verificação de informações e não substitui orientação médica, nutricional ou profissional de saúde. O conteúdo gerado deve ser interpretado com crítico e sempre em conjunto com fontes confiáveis ou profissionais habilitados.

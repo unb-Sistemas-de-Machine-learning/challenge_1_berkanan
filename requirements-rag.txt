@@ -4,13 +4,19 @@
 # de rodar requirements.txt ou requirements-api.txt antes.
 
 # Retrieval (busca no ChromaDB)
-chromadb>=0.4
-langchain-community>=0.4
-langchain-huggingface>=1.0
-sentence-transformers>=2.2
+chromadb>=1.0,<2
+langchain-community>=0.4,<1
+langchain-chroma>=1.0,<2.0
+langchain-huggingface>=1.0,<2
+langchain-text-splitters>=1.0,<2
+sentence-transformers>=2.2,<7
+transformers>=4.41,<6
+torch>=2.6,<3
+tqdm>=4.65,<5
+PyMuPDF>=1.23,<2
 
 # Geração (Gemini)
-google-genai>=1.0
-langchain-google-genai>=2.0
+google-genai>=2.0,<3.0
+langchain-google-genai>=2.0,<5
 
 python-dotenv>=1.0

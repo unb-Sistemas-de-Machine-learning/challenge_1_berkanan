@@ -1,31 +1,48 @@
-# Byte-compiled / optimized
+# Python: bytecode, caches e artefatos locais
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Virtual environments
-venv/
+*.egg-info/
 .venv/
-env/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-# IDE
+# Ambiente: arquivos sensíveis e locais
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Node / frontend (preparado para o futuro monorepo)
+node_modules/
+dist/
+.next/
+out/
+.turbo/
+*.log
+.pnpm-store/
+
+# IDE / sistema
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Dados brutos e processados (grandes demais para o git)
-data/raw/guidelines/*.pdf
+# Dados locais pesados e artefatos não versionados
+knowledge_base/chromadb/
 data/raw/guidelines/*.txt
 data/raw/factchecks.json
-knowledge_base/chromadb/
+data/processed/*.csv
+models/*.joblib
+!models/training_metadata.json
+!models/limitations.md
+!models/training_report.md
+!models/cv_results.json
 
-# Docker volumes
+# Volumes locais do Docker
 postgres_data/
-
-# Dotenv
-.env

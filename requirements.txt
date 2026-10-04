@@ -1,28 +1,33 @@
 # requirements.txt — Fact-Checker de Diabetes e Nutrição
-pandas>=2.0
-numpy>=1.24
-scikit-learn>=1.3
-joblib>=1.3
-beautifulsoup4>=4.12
-requests>=2.31
-tqdm>=4.65
+pandas>=2.0,<4
+numpy>=1.24,<3
+scikit-learn>=1.3,<2
+joblib>=1.3,<2
+beautifulsoup4>=4.12,<5
+requests>=2.31,<3
+tqdm>=4.65,<5
 
 # LangChain + Embeddings (retrieval no ChromaDB — usado por fact_checker.py/batch_ingest.py)
-langchain-community>=0.4
-langchain-huggingface>=1.0
-langchain-text-splitters>=1.0
-sentence-transformers>=2.2
-chromadb>=0.4
+langchain-community>=0.4,<1
+langchain-chroma>=1.0,<2.0
+langchain-huggingface>=1.0,<2
+langchain-text-splitters>=1.0,<2
+sentence-transformers>=2.2,<7
+transformers>=4.41,<6
+torch>=2.6,<3
+chromadb>=1.0,<2
+google-genai>=2.0,<3.0
 
 # PDF
 PyMuPDF>=1.23
 fpdf2>=2.7
 
 # PostgreSQL
-psycopg2-binary>=2.9
-SQLAlchemy>=2.0
-python-dotenv>=1.0
+psycopg2-binary>=2.9,<3
+SQLAlchemy>=2.0,<3
+pydantic>=2.10,<3
+python-dotenv>=1.0,<2
 
 # Backend
-fastapi
-uvicorn[standard]
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30,<1

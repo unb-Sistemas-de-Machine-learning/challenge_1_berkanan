@@ -4,9 +4,16 @@ llm_client.py — Módulo de integração com a API do Google Gemini (google-gen
 Este módulo contém a lógica para gerar respostas fundamentadas nas evidências
 recuperadas pelo RAG, explicando o motivo pelo qual uma alegação é FAKE ou REAL.
 """
+import logging
 import os
-import json
+
 from google import genai
+from google.genai import types
+
+logger = logging.getLogger(__name__)
+
+RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504]
+
 
 class GeminiClient:
     def __init__(self, model_name="gemini-3.8-flash", api_key=None):
@@ -15,9 +22,21 @@ class GeminiClient:
         O SDK automaticamente lê a variável GEMINI_API_KEY do ambiente, mas
         permite passagem explícita caso necessário.
         """
-        self.model_name = os.getenv("LLM_MODEL", model_name)
-        # O Client detecta GEMINI_API_KEY automaticamente do ambiente (.env)
-        self.client = genai.Client(api_key=api_key) if api_key else genai.Client()
+        self.model_name = os.getenv("LLM_MODEL") or model_name
+        configured_api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.client = None
+        if configured_api_key:
+            retry_options = types.HttpRetryOptions(
+                attempts=max(1, int(os.getenv("LLM_MAX_RETRIES", "3"))),
+                initial_delay=0.5,
+                max_delay=4.0,
+                exp_base=2.0,
+                http_status_codes=RETRYABLE_STATUS_CODES,
+            )
+            self.client = genai.Client(
+                api_key=configured_api_key,
+                http_options=types.HttpOptions(retry_options=retry_options),
+            )
 
     def _build_prompt(self, claim: str, classification: str, confidence: float, evidence: list[dict]) -> str:
         """Constrói o prompt contendo a alegação, classificação ML e as evidências do ChromaDB."""
@@ -62,10 +81,14 @@ Confiança do Modelo: {confidence:.1%} de ser FAKE
         classification: str,
         confidence: float,
         evidence: list[dict],
-    ) -> str:
+    ) -> str | None:
         """
         Gera a explicação completa baseada em RAG chamando a API do Gemini.
         """
+        if self.client is None:
+            logger.warning("Gemini indisponível: GEMINI_API_KEY não está configurada.")
+            return None
+
         prompt = self._build_prompt(claim, classification, confidence, evidence)
         
         try:
@@ -75,5 +98,5 @@ Confiança do Modelo: {confidence:.1%} de ser FAKE
             )
             return response.text
         except Exception as e:
-            print(f"Erro ao chamar API Gemini: {e}")
-            return f"Houve um problema ao gerar a explicação detalhada com o LLM. (Erro: {e})"
+            logger.warning("Falha ao gerar explicação com Gemini: %s", e)
+            return None

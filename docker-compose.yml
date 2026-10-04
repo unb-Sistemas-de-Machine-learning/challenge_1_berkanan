@@ -1,19 +1,52 @@
-version: '3.8'
-
 services:
+  # Perfil dev: apenas Postgres local, usando as variáveis do .env.
   db:
-    image: postgres:15
+    image: postgres:16-alpine
+    profiles: ["dev", "prod"]
     container_name: factchecker_db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: adminpassword
-      POSTGRES_DB: factchecker
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASS:-adminpassword}
+      POSTGRES_DB: ${DB_NAME:-factchecker}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
-      - ./db/migrations/:/docker-entrypoint-initdb.d/migrations/
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-factchecker}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Perfil prod: backend + banco, com volume persistente para o Chroma.
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["prod"]
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      ENV: ${APP_ENV:-production}
+      PORT: ${PORT:-8000}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://${DB_USER:-admin}:${DB_PASS:-adminpassword}@db:5432/${DB_NAME:-factchecker}}
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
+      CHROMA_PERSIST_DIRECTORY: /var/chroma
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-gemini-3.8-flash}
+      LLM_MAX_RETRIES: ${LLM_MAX_RETRIES:-3}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - chroma_data:/var/chroma
 
 volumes:
   postgres_data:
+  chroma_data:

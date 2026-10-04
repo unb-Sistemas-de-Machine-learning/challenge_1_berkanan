@@ -13,7 +13,13 @@ CREATE TABLE IF NOT EXISTS Analysis_History (
     matched_sources JSONB DEFAULT '[]'::jsonb,
     analysis_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     user_feedback BOOLEAN,
-    model_version VARCHAR(100)
+    model_version VARCHAR(100),
+    llm_explanation TEXT,
+    llm_model VARCHAR(100),
+    rag_sources_count INTEGER NOT NULL DEFAULT 0
+        CHECK (rag_sources_count >= 0),
+    response_time_ms INTEGER
+        CHECK (response_time_ms IS NULL OR response_time_ms >= 0)
 );
 
 -- Índices para consultas frequentes

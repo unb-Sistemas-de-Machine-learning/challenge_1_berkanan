@@ -21,13 +21,21 @@ from sqlalchemy import create_engine, select, desc
 from sqlalchemy.orm import sessionmaker, Session
 from db.models import Base, AnalysisHistory
 
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "factchecker")
-DB_USER = os.getenv("DB_USER", "admin")
-DB_PASS = os.getenv("DB_PASS", "adminpassword")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+if DATABASE_URL:
+    DB_HOST = None
+    DB_PORT = None
+    DB_NAME = None
+    DB_USER = None
+    DB_PASS = None
+else:
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = os.getenv("DB_PORT", "5432")
+    DB_NAME = os.getenv("DB_NAME", "factchecker")
+    DB_USER = os.getenv("DB_USER", "admin")
+    DB_PASS = os.getenv("DB_PASS", "adminpassword")
+    DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # SQLAlchemy Engine e SessionFactory
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
@@ -56,10 +64,16 @@ def create_tables():
 def get_connection():
     """Context-manager que abre, faz commit e fecha a conexão automaticamente.
     Em caso de exceção, faz rollback."""
-    conn = psycopg2.connect(
-        host=DB_HOST, port=DB_PORT,
-        dbname=DB_NAME, user=DB_USER, password=DB_PASS
-    )
+    if DATABASE_URL:
+        conn = psycopg2.connect(DATABASE_URL)
+    else:
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASS,
+        )
     try:
         yield conn
         conn.commit()
@@ -72,15 +86,19 @@ def get_connection():
 
 def insert_analysis(input_text: str, classification: str,
                     confidence_score: float, matched_sources: list,
-                    model_version: str = "v1.0") -> dict | None:
+                    model_version: str = "v1.0",
+                    llm_explanation: str | None = None,
+                    llm_model: str | None = None,
+                    response_time_ms: int | None = None) -> dict | None:
     """Insere um registro de análise e retorna a linha criada."""
     with get_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""
                 INSERT INTO Analysis_History
                     (input_text, classification, confidence_score,
-                     matched_sources, model_version)
-                VALUES (%s, %s, %s, %s, %s)
+                     matched_sources, model_version, llm_explanation,
+                     llm_model, rag_sources_count, response_time_ms)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *;
             """, (
                 input_text,
@@ -88,13 +106,20 @@ def insert_analysis(input_text: str, classification: str,
                 round(confidence_score, 4),
                 json.dumps(matched_sources, ensure_ascii=False),
                 model_version,
+                llm_explanation,
+                llm_model,
+                len(matched_sources or []),
+                response_time_ms,
             ))
             return dict(cur.fetchone())
 
 
 def insert_analysis_orm(db: Session, input_text: str, classification: str,
                         confidence_score: float, matched_sources: list,
-                        model_version: str = "v1.0") -> AnalysisHistory:
+                        model_version: str = "v1.0",
+                        llm_explanation: str | None = None,
+                        llm_model: str | None = None,
+                        response_time_ms: int | None = None) -> AnalysisHistory:
     """Insere um registro de análise utilizando SQLAlchemy ORM."""
     record = AnalysisHistory(
         input_text=input_text,
@@ -102,6 +127,10 @@ def insert_analysis_orm(db: Session, input_text: str, classification: str,
         confidence_score=round(confidence_score, 4),
         matched_sources=matched_sources,
         model_version=model_version,
+        llm_explanation=llm_explanation,
+        llm_model=llm_model,
+        rag_sources_count=len(matched_sources or []),
+        response_time_ms=response_time_ms,
     )
     db.add(record)
     db.commit()

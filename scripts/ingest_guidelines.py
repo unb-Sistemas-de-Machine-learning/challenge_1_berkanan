@@ -1,5 +1,6 @@
 import os
 import sys
+from dotenv import load_dotenv
 
 # Garante saída UTF-8 no Windows para evitar UnicodeEncodeError
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -12,9 +13,14 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 
-EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+load_dotenv()
+
+EMBEDDING_MODEL = os.getenv(
+    "EMBEDDING_MODEL_NAME",
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+)
 
 
 def process_pdf(pdf_path, chunk_size=1000, chunk_overlap=100):
@@ -58,7 +64,10 @@ def ingest_to_chroma(chunks, persist_directory):
 def main():
     PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     RAW_DATA_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
-    CHROMA_DB_DIR = os.path.join(PROJECT_ROOT, "knowledge_base", "chromadb")
+    CHROMA_DB_DIR = os.getenv(
+        "CHROMA_PERSIST_DIRECTORY",
+        os.path.join(PROJECT_ROOT, "knowledge_base", "chromadb"),
+    )
     
     # Exemplo: Se houvesse um pdf na pasta raw.
     # Como não temos ainda, vamos criar um mock para teste.

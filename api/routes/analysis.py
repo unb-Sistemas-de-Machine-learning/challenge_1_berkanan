@@ -10,6 +10,7 @@ from db.database import (
 
 from api.schemas.analysis import (
     AnalysisRequest,
+    AnalysisHistoryResponse,
     AnalysisResponse,
 )
 
@@ -27,7 +28,7 @@ def health():
     return {"status": "ok"}
 
 
-@router.get("/history")
+@router.get("/history", response_model=list[AnalysisHistoryResponse])
 def history(db: Session = Depends(get_db)):
     analyses = get_recent_analyses_orm(db)
     return analyses
@@ -50,6 +51,9 @@ async def analyze(
         confidence_score=result["confidence_score"],
         matched_sources=result["matched_sources"],
         model_version=result["model_version"],
+        llm_explanation=result.get("llm_explanation"),
+        llm_model=result.get("llm_model"),
+        response_time_ms=result["response_time_ms"],
     )
 
     return AnalysisResponse(
@@ -62,4 +66,7 @@ async def analyze(
         matched_sources=record.matched_sources,
         model_version=record.model_version,
         timestamp=record.analysis_date,
+        llm_model=record.llm_model,
+        rag_sources_count=record.rag_sources_count,
+        response_time_ms=record.response_time_ms,
     )
