@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from "react"
-import {ArrowUp} from 'lucide-react'
+import { ArrowUp } from "lucide-react"
 import { validateClaim } from "@/lib/validation"
 
 type ClaimInputProps = {
@@ -34,7 +34,8 @@ export function ClaimInput({ disabled, onSubmit }: ClaimInputProps) {
       <label htmlFor="claim-input" className="sr-only">
         Afirmação sobre diabetes, alimentação ou nutrição
       </label>
-      <div className="mx-auto flex max-w-3xl items-end gap-3 rounded-[28px] border border-[var(--line)] bg-[var(--surface-2)] p-2 shadow-[var(--shadow)]">
+
+      <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-[28px] border border-[var(--line)] bg-[var(--surface-2)] p-2 shadow-[var(--shadow)]">
         <textarea
           id="claim-input"
           rows={2}
@@ -45,17 +46,19 @@ export function ClaimInput({ disabled, onSubmit }: ClaimInputProps) {
           placeholder="Digite uma afirmação sobre diabetes, alimentação ou nutrição..."
           className="min-h-[52px] w-full resize-none bg-transparent px-3 py-3 text-sm leading-6 outline-none placeholder:text-[var(--faint)]"
         />
+
         <button
           type="button"
           onClick={() => void submit()}
           disabled={disabled}
-          className="mb-1 inline-flex h-11 min-w-[44px] items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 text-sm font-semibold text-white disabled:opacity-50"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] pl-4 pr-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
           aria-label="Verificar"
         >
-          <ArrowUp size={16} />
-          <span className="hidden sm:inline">Verificar</span>
+          <ArrowUp size={16} strokeWidth={2.4} aria-hidden="true" />
+          <span className="hidden leading-none sm:inline">Verificar</span>
         </button>
       </div>
+
       {error ? (
         <p className="mx-auto mt-2 max-w-3xl px-2 text-sm text-[color:var(--fake)]" role="alert">
           {error}

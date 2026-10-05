@@ -1,13 +1,12 @@
-import type { User } from '@lumi.new/sdk'
-import { lumi } from '@/lib/lumi'
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react"
+import { authClient, type AuthUser } from "@/lib/auth-client"
 
 export function useAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState(lumi.auth.isAuthenticated)
-  const [user, setUser] = useState<User | null>(lumi.auth.user)
+  const [isAuthenticated, setIsAuthenticated] = useState(authClient.auth.isAuthenticated)
+  const [user, setUser] = useState<AuthUser | null>(authClient.auth.user)
 
   useEffect(() => {
-    const unsubscribe = lumi.auth.onAuthChange(({ isAuthenticated, user }) => {
+    const unsubscribe = authClient.auth.onAuthChange(({ isAuthenticated, user }) => {
       setIsAuthenticated(isAuthenticated)
       setUser(user)
     })
@@ -17,6 +16,6 @@ export function useAuth() {
   return {
     user,
     isAuthenticated,
-    isAdmin: user?.userRole === 'ADMIN',
+    isAdmin: user?.userRole === "ADMIN",
   }
 }
