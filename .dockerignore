@@ -21,6 +21,7 @@ knowledge_base/chromadb/
 data/raw/
 data/processed/
 models/*.joblib
+!models/classifier_v2.joblib
 
 # Node/frontend future assets
 node_modules/
