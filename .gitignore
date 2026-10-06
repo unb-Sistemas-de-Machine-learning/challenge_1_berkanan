@@ -34,7 +34,6 @@ out/
 Thumbs.db
 
 # Dados locais pesados e artefatos não versionados
-knowledge_base/chromadb/
 data/raw/guidelines/*.txt
 data/raw/factchecks.json
 data/processed/*.csv
