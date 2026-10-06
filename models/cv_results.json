@@ -14,7 +14,7 @@
     "cv_f1_fake": 0.9095,
     "cv_recall_fake": 0.9765,
     "cv_f1_macro": 0.8546,
-    "train_seconds": 1.2
+    "train_seconds": 0.8
   },
   {
     "model": "LinearSVC",
@@ -30,23 +30,23 @@
     "cv_f1_fake": 0.9082,
     "cv_recall_fake": 0.9647,
     "cv_f1_macro": 0.8562,
-    "train_seconds": 0.6
+    "train_seconds": 0.3
   },
   {
     "model": "LogisticRegression",
     "best_params": {
-      "clf__C": 10.0,
-      "tfidf__min_df": 1,
+      "clf__C": 1.0,
+      "tfidf__min_df": 2,
       "tfidf__ngram_range": [
         1,
         2
       ],
       "tfidf__sublinear_tf": true
     },
-    "cv_f1_fake": 0.8908,
-    "cv_recall_fake": 0.9397,
-    "cv_f1_macro": 0.8296,
-    "train_seconds": 11.0
+    "cv_f1_fake": 0.8693,
+    "cv_recall_fake": 0.8316,
+    "cv_f1_macro": 0.8365,
+    "train_seconds": 10.3
   },
   {
     "model": "RandomForest",
@@ -63,6 +63,6 @@
     "cv_f1_fake": 0.8652,
     "cv_recall_fake": 0.9397,
     "cv_f1_macro": 0.7782,
-    "train_seconds": 16.7
+    "train_seconds": 13.3
   }
 ]

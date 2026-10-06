@@ -14,7 +14,7 @@
     "method": "out-of-fold CV no treino, sweep de threshold 0.05-0.95",
     "min_precision_target": 0.7,
     "fallback_used": false,
-    "chosen_threshold": 0.29
+    "chosen_threshold": 0.5
   },
   "train_set": {
     "path": "data\\processed\\diabetes_nutrition_dataset_train.csv",
