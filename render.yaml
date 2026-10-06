@@ -1,10 +1,60 @@
+# Configuração do deploy em Render para o backend do projeto.
 services:
+  # API principal do Fact Checker, executada em Python 3.13.
   - type: web
     name: berkanan-api
     runtime: python
+    plan: free
+    pythonVersion: 3.13
     buildCommand: pip install -r requirements-api.txt
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
-    plan: free
+    disk:
+      name: chroma
+      mountPath: /var/chroma
+      sizeGB: 1
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
+      - key: APP_ENV
+        value: production
+        sync: false
+      - key: PORT
+        value: 8000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: berkanan-db
+          property: connectionString
+        sync: false
+      - key: GEMINI_API_KEY
+        value: ""
+        sync: false
+      - key: LLM_MODEL
+        value: gemini-3.8-flash
+      - key: LLM_MAX_RETRIES
+        value: "3"
+      - key: FRONTEND_ORIGINS
+        value: https://your-frontend-domain.com
+      - key: CHROMA_PERSIST_DIRECTORY
+        value: /var/chroma
+      - key: EMBEDDING_MODEL_NAME
+        value: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+
+# Frontend Vite servido como site estático; configure VITE_API_URL no painel.
+  - type: web
+    name: berkanan-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+
+# Banco PostgreSQL gerenciado opcional para produção.
+databases:
+  - name: berkanan-db
+    databaseName: factchecker
+    user: berkanan
+    plan: free

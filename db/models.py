@@ -61,7 +61,11 @@ class AnalysisHistory(Base):
     # Colunas RAG adicionadas
     llm_explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
     llm_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    rag_sources_count: Mapped[int | None] = mapped_column(nullable=True, default=0)
+    rag_sources_count: Mapped[int] = mapped_column(
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
     response_time_ms: Mapped[int | None] = mapped_column(nullable=True)
 
     __table_args__ = (

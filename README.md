@@ -3,302 +3,400 @@ Challenge 1 - Equipe Berkanan - Sistemas de Machine Learning 2026/02
 
 ## Chatbot de Verificação de Informações Nutricionais para Diabetes
 
+[![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-vector_store-FF6F61)](https://www.trychroma.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+
 Projeto acadêmico de Aprendizado de Máquina (ML) cujo objetivo é combater a desinformação alimentar voltada a pessoas com diabetes, por meio de um chatbot de checagem de fatos baseado em evidências científicas.
 
-### Sumário
-
-- [Objetivo de Negócio](#objetivo-de-negócio)
-- [Objetivos Técnicos de ML](#objetivos-técnicos-de-ml)
-- [Escopo](#escopo)
-- [Ideia do Produto](#ideia-do-produto)
-- [Requisitos Funcionais](#requisitos-funcionais)
-- [Requisitos Não-Funcionais](#requisitos-não-funcionais)
-- [Guide Questions (GQs)](#guide-questions-gqs)
-- [Plano de Atividades das GQs Prioritárias](#plano-de-atividades-das-gqs-prioritárias)
-
-### Objetivo de Negócio
-
-> Reduzir a proporção de decisões alimentares tomadas por pessoas com diabetes sem verificação prévia de fontes confiáveis, por meio de um chatbot de checagem baseado em evidência científica, aumentando a frequência com que essas pessoas confirmam uma informação antes de segui-la ou repassá-la.
-
-### Objetivos Técnicos de ML
-
-#### 1. Abordagem de IA / Modelo
-
-- **Escolha principal:** RAG (Geração Aumentada por Recuperação) — busca em documentos + IA. O sistema busca primeiro trechos oficiais em manuais/diretrizes médicas e a IA formula a resposta com base neles, evitando invenção de informação (hallucination) e garantindo fontes reais para cada checagem.
-- **Plano B:** Prompting puro via API, caso o cronograma do semestre fique apertado.
-- **Descartado:** Treinar modelo do zero — inviável no prazo da matéria.
-
-#### 2. Plataforma / Interface
-
-- **Prioridade:** Chatbot via WhatsApp ou Telegram — mais próximo da realidade de quem recebe correntes e fake news no dia a dia.
-- **Alternativa:** Interface web rápida, caso a burocracia/API do WhatsApp complique a integração.
-
-#### 3. Métricas e Escopo Técnico
-
-- **Objetivo de ML:** classificar o texto em **Verdadeiro**, **Falso**, **Parcialmente Verdadeiro** ou **Sem Evidência Suficiente**, sempre com explicação embasada.
-- **Métricas principais:** meta de acurácia geral + foco rigoroso em minimizar **falsos negativos** (evitar classificar uma fake news perigosa como verdadeira — o custo desse erro é assimétrico e mais grave).
-
-### Escopo
-
-**Trata:**
-- Textos e afirmações sobre alimentação, dietas e mitos relacionados a diabetes, em português.
-
-**Não trata:**
-- Prescrições médicas.
-- Dosagens de insulina.
-- Diagnósticos clínicos.
-
-### Ideia do Produto
-
-#### Critérios Funcionais
-
-- **Verificação de informação:** dado um texto/afirmação sobre dieta, alimento ou nutrição (ex.: "canela cura diabetes"), o sistema classifica como verdadeiro, falso, enganoso/parcialmente verdadeiro ou "sem evidência suficiente".
-- **Chatbot funcional:** mantém conversa coerente, entende linguagem natural (erros de digitação, gírias, etc.) e responde com clareza.
-- **Contextualização para diabetes:** não basta dizer "é falso" — precisa explicar por que é perigoso especificamente para quem tem diabetes (ex.: impacto glicêmico, interação com insulina/medicamentos).
-- **Citação de fontes confiáveis:** toda resposta embasada em fontes como SBD (Sociedade Brasileira de Diabetes), Ministério da Saúde, artigos científicos etc.
-
-#### Critérios Técnicos / de ML
-
-- Acurácia do classificador de fake news (precisão, recall, F1-score — meta ex.: F1 ≥ 0.80 no teste).
-- Taxa de falsos negativos baixa (custo do erro assimétrico).
-- Qualidade da base de dados: dataset rotulado (fake/real) sobre nutrição e diabetes, com fontes documentadas e tamanho justificado.
-- Tempo de resposta aceitável (ex.: < 3-5 segundos).
-
-#### Critérios de Usabilidade / UX
-
-- Testes de usabilidade com usuários reais (mesmo que grupo pequeno).
-- Linguagem acessível, sem jargão técnico excessivo.
-- Avaliação de facilidade de uso via SUS (System Usability Scale) ou entrevistas qualitativas.
-
-#### Critérios de Impacto / Segurança
-
-- Redução percebida de dúvidas/insegurança alimentar dos usuários testados (pré/pós teste).
-- O sistema reforça que não substitui orientação médica/nutricional.
-- Casos de teste específicos: o chatbot não deve dar conselho médico direto (ex.: dosagem de insulina), apenas checar informação e recomendar profissional.
-
-### Requisitos Funcionais
-
-| ID | Descrição |
-|----|-----------|
-| RF01 | Verificação de informações compartilhadas: classificar afirmação como verdadeira ou falsa. |
-| RF02 | Classificação das informações por partes: parcialmente verdadeiras ou enganosas. |
-| RF03 | Indicação do cenário de incerteza/falha ("sem evidência suficiente"). |
-| RF04 | Coerência na conversa, entendimento de linguagem natural. |
-| RF05 | Contextualização para diabetes nas explicações. |
-| RF06 | Citação de fontes confiáveis. |
-| RF07 | Explicação dos motivos da classificação. |
-| RF08 | Apresentação das evidências e trechos das fontes. |
-| RF09 | Solicitação de contexto adicional quando necessário. |
-| RF10 | Orientação para procurar um profissional de saúde. |
-| RF11 | Reformulação da pergunta quando ambígua. |
-| RF12/RF13 | Alertas para informações potencialmente perigosas. |
-
-### Requisitos Não-Funcionais
-
-| ID | Descrição |
-|----|-----------|
-| RNF01 | Acurácia do classificador (meta ex.: F1 ≥ 0.80). |
-| RNF02 | Taxa de falsos negativos baixa. |
-| RNF03 | Tempo de resposta < 3-5 segundos. |
-| RNF04 | Suporte a ~3 salas de conversa diferentes. |
-| RNF05 | Proteção dos dados do usuário contra acesso não autorizado. |
-| RNF06 | Minimização de dados coletados/armazenados. |
-| RNF08 | Clareza das respostas para público sem conhecimento técnico. |
-| RNF09 | Legibilidade: classificação, justificativa e fontes bem estruturadas. |
-
-### Guide Questions (GQs)
-
-#### Dados
-- Critérios de seleção/validação de fontes (PubMed, nutrição, etc.) — **Responder já**
-- Lidar com desatualização/revogação de estudos científicos — **Se sobrar tempo**
-- Heurísticas nutricionais como sinal de suspeita (índice/carga glicêmica, evidência clínica vs. anedótica) — **Planejar**
-
-#### Usuários
-- Tratamento específico por tipo de diabetes (1, 2, gestacional...) ou generalizado — **Planejar**
-- Adaptações de acessibilidade (idosos, baixa alfabetização digital, deficiência visual) — **Se sobrar tempo**
-- Qual tipo de alimentação causa mais insegurança ao usuário — **Cortar sem dó**
-
-#### Modelo
-- Base local ou online — **Responder já**
-- Generativa / Descritiva / Preditiva — **Responder já**
-- Melhor tipo de treinamento — **Responder já**
-
-#### Produção
-- Plataforma (web ou mobile) — **Responder já**
-- Ferramentas de software livre disponíveis — **Planejar**
-- Ambiente de hospedagem — **Responder já**
-
-#### Ética
-- Armazenamento das informações do usuário — **Se sobrar tempo**
-- Cuidados com informações com viés — **Cortar sem dó**
-- Como deixar claro que o chatbot não substitui médico/nutricionista — **Responder já**
-
-### Plano de Atividades das GQs Prioritárias
-
-As 7 GQs abaixo foram definidas como prioridade, cada uma com atividade e recurso já mapeados (falta apenas responsável e prazo):
-
-#### 1. Critérios de fontes confiáveis
-- **Atividade:** levantar e comparar critérios de credibilidade científica (peer-review, tipo de estudo, data de publicação, conflito de interesse) e aplicar em checklist para 15-20 fontes candidatas.
-- **Recurso:** PubMed, diretrizes da SBD, guidelines da ADA, critérios de avaliação de evidência tipo GRADE.
-
-#### 2. Arquitetura de modelo (local/online, tipo, treinamento)
-- **Atividade:** comparar 2-3 abordagens (LLM via API + prompt engineering vs. modelo de classificação treinado localmente com fine-tuning vs. RAG sobre base curada) num pequeno protótipo/POC com 5-10 exemplos.
-- **Recurso:** Hugging Face, documentação de APIs (Anthropic, OpenAI), papers sobre RAG para fact-checking.
-
-#### 3. Plataforma e hospedagem
-- **Atividade:** listar requisitos técnicos (custo, facilidade de deploy, tempo de aula restante) e comparar 2-3 opções de stack.
-- **Recurso:** Streamlit/Gradio (protótipo rápido), Vercel/Render/Railway (hospedagem gratuita), WhatsApp Business API.
-
-#### 4. Comunicação de limites do chatbot
-- **Atividade:** desenhar 3-5 respostas-padrão para quando a pergunta exigir decisão clínica, testando com 2-3 pessoas se a mensagem fica clara sem soar assustadora ou robótica.
-- **Recurso:** exemplos de disclaimers de apps de saúde reais, heurísticas de UX writing para saúde.
-
-#### 5. Diabetes tipo 1/2/gestacional vs. genérico
-- **Atividade:** entrevistar ou pesquisar 3-5 diferenças nutricionais relevantes entre os tipos (ex.: contagem de carboidratos crítica no tipo 1; tipo 2 com mais foco em perda de peso) e decidir se o escopo do semestre permite diferenciar.
-- **Recurso:** material da SBD sobre diferenças entre os tipos, entrevista rápida com alguém com diabetes (se houver acesso).
-
-#### 6. Heurísticas nutricionais como sinal de fake news
-- **Atividade:** listar 8-10 "bandeiras vermelhas" comuns em desinformação nutricional (promessa de cura milagrosa, ausência de fonte, linguagem absolutista "nunca/sempre", contradição com consenso científico) e testar contra 10 exemplos reais de correntes.
-- **Recurso:** exemplos de checagem de fatos (Boatos.org, Lupa, Aos Fatos — buscar "diabetes"/"diet"), literatura sobre linguística de fake news.
-
-#### 7. Armazenamento de dados sensíveis
-- **Atividade:** mapear quais dados o sistema realmente precisa guardar (histórico de conversa? tipo de diabetes? nada?) e definir o mínimo necessário sob a LGPD para dados de saúde.
-- **Recurso:** texto da LGPD (art. 11, dados sensíveis), guia de privacidade *by design*.
-
+> ⚠️ **Aviso acadêmico:** este sistema não substitui orientação médica ou nutricional profissional. Ele apenas verifica alegações com base em evidências recuperadas de documentos oficiais.
 
 ---
 
-# 🩺 Fact-Checker de Diabetes e Nutrição
+## 📑 Sumário
 
-Sistema de verificação de alegações sobre diabetes e nutrição usando IA, RAG (Retrieval-Augmented Generation) e bases de conhecimento oficiais.
+- [Sobre o projeto](#-sobre-o-projeto)
+- [Arquitetura](#-arquitetura)
+- [Stack técnica](#-stack-técnica)
+- [Estrutura do repositório](#-estrutura-do-repositório)
+- [Quick start](#-quick-start)
+- [Endpoints da API](#-endpoints-da-api)
+- [Variáveis de ambiente](#-variáveis-de-ambiente)
+- [Como funciona o pipeline](#-como-funciona-o-pipeline)
+- [Limitações conhecidas](#-limitações-conhecidas)
+- [Equipe e referências](#-equipe-e-referências)
 
-## Arquitetura
+---
+
+## 🎯 Sobre o projeto
+
+**Problema:** pessoas com diabetes tomam decisões alimentares sem verificar a veracidade das informações que recebem, especialmente em correntes de WhatsApp e redes sociais. Isso pode levar à redução ou abandono de tratamentos essenciais (ex.: insulina).
+
+**Solução:** um chatbot que recebe uma afirmação em português (ex.: *"canela cura diabetes"*), classifica como **verdadeira ou falsa**, e apresenta **evidências de fontes oficiais** (SBD, Ministério da Saúde, MedlinePlus, OMS, CDC, etc.) com explicação contextualizada para o diabetes.
+
+**Escopo:**
+- ✅ Afirmações sobre alimentação, dietas e mitos relacionados a diabetes
+- ❌ Prescrições médicas, dosagens de insulina, diagnósticos clínicos
+
+---
+
+## 🏗️ Arquitetura
+
+O sistema é composto por **quatro camadas independentes**, cada uma com responsabilidade clara:
 
 ```text
-       Alegação do Usuário
-                │
-                ▼
-┌───────────────────────────────────────┐
-│         Streamlit (Frontend)          │
-└───────────────────┬───────────────────┘
-                    │ REST API (/api/analyze)
-                    ▼
-┌───────────────────────────────────────┐
-│           FastAPI (Backend)           │
-│             (api/main.py)             │
-└───────────────────┬───────────────────┘
-                    │
-                    ▼
-┌───────────────────────────────────────┐
-│        fact_checker_service.py        │
-│                                       │
-│ 1. Classificação Base (MultinomialNB) │
-│ 2. Busca RAG (ChromaDB)               │
-│ 3. Síntese de Resposta (Gemini LLM)   │
-│ 4. Persistência (PostgreSQL)          │
-└───────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                        NAVEGADOR (Usuário)                       │
+└──────────────────────────────┬───────────────────────────────────┘
+                               │ HTTP
+                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│              FRONTEND — React + Vite + Tailwind                  │
+│              (chat, histórico, markdown renderizado)             │
+└──────────────────────────────┬───────────────────────────────────┘
+                               │ fetch /api/analyze
+                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│              BACKEND — FastAPI (api/main.py)                     │
+│              POST /api/analyze  ·  GET /api/history              │
+└──────────────────────────────┬───────────────────────────────────┘
+                               │
+        ┌──────────────────────┼──────────────────────┐
+        ▼                      ▼                      ▼
+┌────────────────┐   ┌─────────────────┐   ┌──────────────────┐
+│ 1. ML          │   │ 2. RAG          │   │ 3. LLM (opcional)│
+│ MultinomialNB  │   │ Embeddings +    │   │ Gemini gera      │
+│ + TF-IDF       │   │ ChromaDB top-3  │   │ explicação em    │
+│ → p_fake       │   │ → matched_src[] │   │ markdown         │
+└────────┬───────┘   └────────┬────────┘   └─────────┬────────┘
+         │                    │                      │
+         └────────────────────┼──────────────────────┘
+                              ▼
+                   ┌──────────────────────┐
+                   │ 4. PostgreSQL        │
+                   │ Histórico persistido │
+                   └──────────────────────┘
 ```
 
-## Quick Start
+**Características importantes:**
+- Cada camada é **independente** — a falha de uma não derruba as outras
+- Se o LLM falhar (`429`, `503`, sem chave), `llm_explanation` vira `null` — classificação e evidências continuam
+- Se o banco cair, a análise é devolvida com `id: null` — só não persiste no histórico
+- Se o Chroma estiver vazio, `matched_sources: []` — a classificação ML continua
 
-```bash
-# 1. Criar e ativar ambiente virtual
-python -m venv venv
-.\venv\Scripts\activate    # Windows
-source venv/bin/activate   # Linux/Mac
+---
 
-# 2. Instalar dependências
-pip install -r requirements.txt
+## 🧰 Stack técnica
 
-# 3. Raspar dados oficiais (SBD, Ministério da Saúde, OMS, CDC e outras instituições)
-python scripts/scraper.py
+### Backend
 
-# 4. Ingerir no ChromaDB
-python scripts/batch_ingest.py
+| Camada | Tecnologia |
+|---|---|
+| API | FastAPI + Uvicorn |
+| Validação | Pydantic v2 |
+| ML | scikit-learn (`MultinomialNB` + `TF-IDF`) |
+| Embeddings | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` |
+| Vector store | ChromaDB (via `langchain-chroma`) |
+| Orquestração RAG | LangChain |
+| LLM | Google Gemini (`google-genai`) |
+| Banco relacional | PostgreSQL 16 + SQLAlchemy + psycopg2 |
+| Scraping | Requests + BeautifulSoup4 + PyMuPDF |
 
-# 5. Gerar dataset de treino
-python scripts/dataset_builder.py
+### Frontend
 
-# 6. Treinar o classificador
-python scripts/fact_checker.py --train
+| Camada | Tecnologia |
+|---|---|
+| Framework | React 18 |
+| Build | Vite 5 |
+| Estilo | Tailwind CSS |
+| Roteamento | React Router |
+| Animações | Framer Motion |
+| Ícones | Lucide React |
+| Markdown | react-markdown + remark-gfm |
 
-# 7. Verificar uma alegação
-python scripts/fact_checker.py "Chá de manga cura diabetes"
+---
 
-# 8. Modo interativo
-python scripts/fact_checker.py --interactive
+## 📁 Estrutura do repositório
 
-# Pipeline completo: coleta e, depois, dataset/treino + embeddings em paralelo
-python scripts/run_pipeline.py
-
-# Reutilizar os arquivos já coletados
-python scripts/run_pipeline.py --skip-scrape
-
-# 9. Rodar o Backend (FastAPI)
-uvicorn api.main:app --reload
-
-# 10. Rodar o Frontend (Streamlit) em outro terminal
-streamlit run streamlit_app.py
-```
-
-O pipeline paralelo espera a raspagem terminar e então executa o treinamento
-do classificador enquanto gera os embeddings e atualiza o ChromaDB. Isso evita
-que arquivos ainda incompletos sejam processados e reduz o tempo total.
-
-## Estrutura do Projeto
+Monorepo com **backend na raiz** e **frontend em `frontend/`**:
 
 ```text
 challenge_1_berkanan/
-├── api/                       # Backend FastAPI refatorado
-│   ├── main.py                # Ponto de entrada da API
-│   ├── routes/                # Definição de endpoints (/analyze, /history)
-│   ├── schemas/               # Modelos de validação Pydantic
-│   └── services/              # Integração do RAG como serviço
-├── data/                      # Datasets e arquivos processados
-├── db/                        # Integração com PostgreSQL via SQLAlchemy
-├── knowledge_base/
-│   └── chromadb/              # Vetores persistidos para o RAG
-├── scripts/
-│   ├── scraper.py             # Raspagem de fontes oficiais
-│   ├── dataset_builder.py     # Geração do dataset rotulado
-│   ├── fact_checker.py        # Motor ML + ChromaDB integrados
-│   └── llm_client.py          # Cliente Gemini da Google
-├── streamlit_app.py           # Interface de usuário (Frontend Web)
-├── docker-compose.yml         # PostgreSQL via Docker
-├── Procfile                   # Comando de execução para Cloud Deploy
-├── requirements.txt           # Dependências consolidadas
+├── api/                       # Backend FastAPI
+│   ├── main.py                # Ponto de entrada (uvicorn api.main:app)
+│   ├── routes/                # Endpoints (/analyze, /history, /health)
+│   ├── schemas/               # Modelos Pydantic
+│   └── services/              # Orquestração ML + RAG + LLM
+├── data/                      # Dataset rotulado + guidelines raspadas
+│   ├── processed/             # CSVs (full, train, test) — versionados
+│   └── raw/guidelines/        # Textos oficiais coletados (não versionados)
+├── db/                        # PostgreSQL (models, schema, migrations)
+├── docs/                      # Documentação adicional
+│   └── environments.md        # Diferenças entre dev e prod
+├── frontend/                  # React + Vite (monorepo)
+│   ├── src/                   # Componentes, páginas, hooks, providers
+│   ├── Dockerfile             # Build multi-stage (node → nginx)
+│   ├── nginx.conf             # Serve SPA + proxy /api
+│   ├── .env.development       # Vite dev (proxy)
+│   └── .env.production        # Vite prod (URL pública)
+├── knowledge_base/chromadb/   # Índice vetorial (gerado, não versionado)
+├── models/                    # classifier_v2.joblib + metadados
+├── scripts/                   # Pipeline: scraper, batch_ingest, treino
+├── tests/                     # Testes de API
+├── docker-compose.yml         # Perfis dev/prod
+├── Dockerfile                 # Imagem do backend
+├── render.yaml                # Config de deploy
+├── requirements*.txt          # Dependências Python
 └── README.md
 ```
 
-## Componentes
+---
 
-| Componente | Arquivo/Pasta | Descrição |
+## 🚀 Quick start
+
+### Pré-requisitos
+
+| Ferramenta | Versão | Verificação |
 |---|---|---|
-| **Frontend** | `streamlit_app.py` | Interface interativa para o usuário testar alegações. |
-| **Backend API** | `api/` | Servidor FastAPI com rotas de análise com modelo Pydantic. |
-| **LLM Engine** | `scripts/llm_client.py` | Integração com Google Gemini para gerar explicações embasadas. |
-| **Classificador** | `scripts/fact_checker.py` | Modelo ML calibrado para recall máximo + busca RAG no ChromaDB. |
-| **Scraper** | `scripts/scraper.py` | Raspa referências oficiais (SBD, MS, OMS) e fact-checks. |
-| **Dataset** | `scripts/dataset_builder.py` | Consolida dados raspados e gera os splits de treino/teste. |
-| **Banco de Dados**| `db/database.py` | Context-manager e modelagem com SQLAlchemy / PostgreSQL. |
+| Python | 3.13+ | `python --version` |
+| Node.js | 20 LTS | `node --version` |
+| Docker Desktop | 24+ | `docker --version` |
+| Git Bash (Windows) | — | — |
+| C++ Build Tools (Windows) | — | Para compilar `scikit-learn` e `chromadb` |
 
-### Estado atual da base
+**Opcional:** chave do Gemini em [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) — sem ela, o sistema funciona com `llm_explanation: null`.
 
-- Catálogo configurado com **100 referências oficiais únicas**.
-- Dataset consolidado com **164 registros** (106 FAKE e 58 REAL).
-- Treinamento validado com **94% de acurácia** (F1-score 0.94) no conjunto de teste.
-- Embeddings multilíngues (`paraphrase-multilingual-MiniLM-L12-v2`) no ChromaDB.
-
-## PostgreSQL (opcional)
+### 1. Clone o repositório
 
 ```bash
-# Subir o banco com Docker
-docker-compose up -d
-
-# O schema é aplicado automaticamente via docker-entrypoint-initdb.d
+git clone https://github.com/<seu-usuario>/challenge_1_berkanan.git
+cd challenge_1_berkanan
 ```
 
-## Modelo de Embeddings
+### 2. Backend — ambiente Python
 
-Usa `paraphrase-multilingual-MiniLM-L12-v2` (multilíngue, incluindo português) em vez do `all-MiniLM-L6-v2` (apenas inglês), garantindo qualidade na busca semântica de textos em português.
+```bash
+python -m venv venv
+source venv/Scripts/activate          # Git Bash
+# ou: .\venv\Scripts\Activate.ps1     # PowerShell
 
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt -r requirements-api.txt -r requirements-rag.txt
+```
+
+> ⏱️ Primeira instalação: ~15 min (torch + transformers, ~5 GB).
+
+### 3. Configurar `.env`
+
+```bash
+cp .env.example .env
+```
+
+Edite `.env`:
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=factchecker
+DB_USER=admin
+DB_PASS=adminpassword
+
+CHROMA_PERSIST_DIRECTORY=knowledge_base/chromadb
+EMBEDDING_MODEL_NAME=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+
+GEMINI_API_KEY=                       # opcional
+LLM_MODEL=gemini-3.8-flash
+LLM_MAX_RETRIES=3
+
+APP_ENV=development
+FRONTEND_ORIGINS=http://localhost:5173,http://localhost:3000
+PORT=8000
+```
+
+### 4. Subir o PostgreSQL
+
+```bash
+docker compose --profile dev up -d
+sleep 10
+docker compose ps                     # esperar "healthy"
+docker exec -i factchecker_db psql -U admin -d factchecker < db/schema.sql
+```
+
+### 5. Popular a base RAG (só na primeira vez)
+
+```bash
+python scripts/scraper.py             # 5–15 min
+python scripts/batch_ingest.py        # 3–10 min
+```
+
+### 6. Rodar o backend
+
+```bash
+uvicorn api.main:app --reload --port 8000
+```
+
+Confirme: `http://127.0.0.1:8000/health` → `{"status":"ok"}`
+
+### 7. Frontend (em outro terminal)
+
+```bash
+cd frontend
+npm install                           # primeira vez
+npm run dev
+```
+
+Acesse **http://localhost:5173**
+
+> 💡 Em dev, o Vite faz proxy de `/api/*` para `http://localhost:8000`, então **não há CORS** mesmo em origens cruzadas.
+
+### Fluxo resumido (copiar e colar)
+
+```bash
+# Backend
+python -m venv venv && source venv/Scripts/activate
+python -m pip install -r requirements.txt -r requirements-api.txt -r requirements-rag.txt
+cp .env.example .env
+docker compose --profile dev up -d && sleep 10
+docker exec -i factchecker_db psql -U admin -d factchecker < db/schema.sql
+python scripts/scraper.py && python scripts/batch_ingest.py   # primeira vez
+uvicorn api.main:app --reload --port 8000
+
+# Frontend (outro terminal)
+cd frontend && npm install && npm run dev
+```
+
+---
+
+## 🔌 Endpoints da API
+
+| Método | Rota | Descrição | Request | Response |
+|---|---|---|---|---|
+| `GET` | `/health` | Liveness probe | — | `{"status":"ok"}` |
+| `GET` | `/api/health` | Liveness probe (prefixado) | — | `{"status":"ok"}` |
+| `POST` | `/api/analyze` | Analisa uma afirmação | `{"text": "..."}` (mín. 3 chars) | `AnalysisResponse` |
+| `GET` | `/api/history` | Últimas 20 análises persistidas | — | `AnalysisResponse[]` |
+
+
+### Exemplo com `curl`
+
+```bash
+curl -X POST http://localhost:8000/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Canela cura diabetes?"}'
+```
+
+### Swagger UI
+
+Documentação interativa em **http://127.0.0.1:8000/docs**.
+
+---
+
+## ⚙️ Variáveis de ambiente
+
+### Backend (`.env`)
+
+| Variável | Obrigatória | Padrão | Descrição |
+|---|---|---|---|
+| `DB_HOST` | ✅ | `localhost` | Host do PostgreSQL |
+| `DB_PORT` | ✅ | `5432` | Porta |
+| `DB_NAME` | ✅ | `factchecker` | Nome do banco |
+| `DB_USER` | ✅ | `admin` | Usuário |
+| `DB_PASS` | ✅ | `adminpassword` | Senha |
+| `DATABASE_URL` | ❌ | — | Alternativa ao bloco `DB_*` (usado em prod) |
+| `CHROMA_PERSIST_DIRECTORY` | ✅ | `knowledge_base/chromadb` | Diretório do índice vetorial |
+| `EMBEDDING_MODEL_NAME` | ✅ | `paraphrase-multilingual-MiniLM-L12-v2` | Modelo de embeddings |
+| `GEMINI_API_KEY` | ❌ | — | Chave do Google Gemini (sem ela, `llm_explanation: null`) |
+| `LLM_MODEL` | ✅ | `gemini-3.8-flash` | Modelo Gemini |
+| `LLM_MAX_RETRIES` | ❌ | `3` | Tentativas em caso de falha transitória |
+| `APP_ENV` | ✅ | `development` | `development` ou `production` |
+| `FRONTEND_ORIGINS` | ✅ | `http://localhost:5173,...` | Origens permitidas para CORS |
+| `PORT` | ❌ | `8000` | Porta do backend |
+
+### Frontend
+
+| Arquivo | Variável | Valor em dev | Valor em prod |
+|---|---|---|---|
+| `.env.development` | `VITE_API_URL` | *(vazio — usa proxy)* | — |
+| `.env.production` | `VITE_API_URL` | — | `https://seu-backend.onrender.com` |
+
+---
+
+## 🧠 Como funciona o pipeline
+
+### 1. Classificação ML
+
+- **Modelo:** `MultinomialNB` com TF-IDF (unigramas + bigramas)
+- **Treino:** CSVs rotulados (`FAKE`/`REAL`) em `data/processed/`
+- **Artefato:** `models/classifier_v2.joblib`
+- **Threshold calibrado:** `0.29` (otimizado para recall de `FAKE`)
+- **Saída:** `p_fake` ∈ [0, 1] → comparado ao threshold → `FAKE` ou `REAL`
+
+> ⚠️ **`confidence_score` é sempre `p_fake`**, mesmo quando a classificação é `REAL`. Não é probabilidade de veracidade nem confiança genérica.
+
+### 2. RAG (Retrieval-Augmented Generation)
+
+- **Base:** documentos oficiais em `data/raw/guidelines/`
+- **Chunking:** 800 chars com overlap de 120
+- **Embeddings:** `paraphrase-multilingual-MiniLM-L12-v2`
+- **Busca:** top-3 chunks mais similares à afirmação
+- **Saída:** `matched_sources: [{text, source, similarity}]`
+
+> O RAG **não influencia** a classificação. Ele apenas traz as evidências que serão exibidas ao usuário e usadas pelo LLM para gerar a explicação.
+
+### 3. LLM (opcional)
+
+- **Modelo:** Google Gemini (`gemini-3.8-flash`)
+- **Prompt:** afirmação + classificação ML + trechos recuperados
+- **Saída:** explicação em markdown
+- **Falha:** se a cota estourar (429), o modelo for descontinuado (404) ou a chave estiver ausente, `llm_explanation` vira `null`
+
+> O LLM **não classifica** e **não busca** — apenas redige com base no que o ML e o RAG já produziram.
+
+### 4. Persistência
+
+- **Banco:** PostgreSQL via SQLAlchemy
+- **Tabela:** `analysis_history`
+- **Falha:** se o DB cair, a resposta ainda é enviada com `id: null` — apenas não é salva no histórico
+
+---
+
+## ⚠️ Limitações conhecidas
+
+Documentadas em `models/limitations.md`:
+
+- **Dataset pequeno** (~164 exemplos). O classificador aprende padrões de palavras, não medicina.
+- **Falsos positivos conhecidos**: afirmações verdadeiras curtas podem ser classificadas como `FAKE` se usarem vocabulário frequente em exemplos falsos no treino.
+- **Classificador binário**: embora o schema aceite `INCONCLUSIVE` e `PARTIALLY_TRUE`, o modelo atual só produz `REAL` ou `FAKE`.
+- **`confidence_score` é `p_fake`**: não é probabilidade de veracidade nem confiança calibrada.
+- **LLM é opcional e falível**: cota do free tier (~20 req/dia), modelo pode ser descontinuado, chave pode expirar.
+- **RAG depende de base pré-indexada**: o sistema não faz busca na web em tempo real. Se a afirmação fala de algo que não está no Chroma, `matched_sources` pode vir vazio.
+- **Gemini 404 / 429**: o modelo `gemini-2.0-flash` foi descontinuado. Use `gemini-3.8-flash`.
+
+---
+
+## 👥 Equipe e referências
+
+**Equipe Berkanan** — Tópicos Especiais de Engenharia de Software 2026/2.
+
+**Fontes utilizadas no RAG:**
+- Sociedade Brasileira de Diabetes (SBD)
+- Ministério da Saúde (MS)
+- MedlinePlus (NIH)
+- Organização Mundial da Saúde (OMS)
+- OPAS, CDC, NHS, ADA, IDF, NIDDK, SciELO
+
+**Referências técnicas:**
+- Scikit-learn — documentação oficial
+- LangChain — documentação oficial
+- ChromaDB — documentação oficial
+
+---
+
+## 📄 Licença
+
+Projeto acadêmico. Uso educacional.
+
+> 🩺 **Aviso final:** este sistema é uma ferramenta de triagem acadêmica. Ele **não substitui** orientação de médico ou nutricionista. Sempre procure um profissional de saúde antes de tomar decisões sobre tratamento.

@@ -16,6 +16,8 @@ Uso:
 import os
 import sys
 import argparse
+import logging
+import time
 from datetime import datetime
 
 # Garante saída UTF-8 no Windows para evitar UnicodeEncodeError
@@ -30,11 +32,15 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-import classifier as clf  # scripts/classifier.py — treino/inferência
-from llm_client import GeminiClient
+from scripts import classifier as clf  # scripts/classifier.py — treino/inferência
+from scripts.llm_client import GeminiClient
 
 # Modelo multilíngue — mesmo do batch_ingest
-EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+EMBEDDING_MODEL = os.getenv(
+    "EMBEDDING_MODEL_NAME",
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+)
+logger = logging.getLogger(__name__)
 
 
 class DiabetesFactChecker:
@@ -73,7 +79,7 @@ class DiabetesFactChecker:
         """Carrega o ChromaDB."""
         if self.vectorstore is None:
             from langchain_huggingface import HuggingFaceEmbeddings
-            from langchain_community.vectorstores import Chroma
+            from langchain_chroma import Chroma
 
             if not os.path.exists(self.chroma_dir):
                 print("⚠ ChromaDB não encontrado. Rode batch_ingest.py primeiro.")
@@ -96,10 +102,11 @@ class DiabetesFactChecker:
         results = self.vectorstore.similarity_search_with_score(claim, k=k)
         evidence = []
         for doc, score in results:
+            similarity = max(0.0, min(1.0, 1 - float(score)))
             evidence.append({
                 "text": doc.page_content[:300],
                 "source": doc.metadata.get("source_file", "desconhecido"),
-                "similarity": round(float(1 - score), 4),  # Converte distância em similaridade
+                "similarity": round(similarity, 4),
             })
         return evidence
 
@@ -108,6 +115,7 @@ class DiabetesFactChecker:
     # ------------------------------------------------------------------
     def check(self, claim: str, save_to_db: bool = False) -> dict:
         """Pipeline completo: classifica + busca evidências + (opcionalmente) salva."""
+        started_at = time.perf_counter()
         self._load_classifier()
 
         # Classificação — delega inteiramente ao classifier.py (modelo +
@@ -136,9 +144,14 @@ class DiabetesFactChecker:
             "threshold": threshold,
             "matched_sources": evidence,
             "llm_explanation": explanation,
+            "llm_model": self.llm.model_name,
             "model_version": self.classifier["model_name"],
             "timestamp": datetime.now().isoformat(),
         }
+        result["response_time_ms"] = max(
+            0,
+            int((time.perf_counter() - started_at) * 1000),
+        )
 
         # Persiste no PostgreSQL (se disponível e solicitado)
         if save_to_db:
@@ -150,11 +163,14 @@ class DiabetesFactChecker:
                     confidence_score=p_fake,
                     matched_sources=evidence,
                     model_version=result["model_version"],
+                    llm_explanation=explanation,
+                    llm_model=result["llm_model"],
+                    response_time_ms=result["response_time_ms"],
                 )
                 result["db_id"] = str(row["id"])
                 print("  ✔ Resultado salvo no PostgreSQL")
             except Exception as e:
-                print(f"  ⚠ Não foi possível salvar no DB: {e}")
+                logger.exception("Não foi possível salvar no PostgreSQL")
 
         return result
 

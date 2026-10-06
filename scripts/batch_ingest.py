@@ -8,6 +8,7 @@ import os
 import sys
 import hashlib
 from tqdm import tqdm
+from dotenv import load_dotenv
 
 # Garante saída UTF-8 no Windows para evitar UnicodeEncodeError
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -20,10 +21,15 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 from langchain_community.document_loaders import PyMuPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
+
+load_dotenv()
 
 # Modelo multilíngue — essencial para busca semântica em textos em português
-EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+EMBEDDING_MODEL = os.getenv(
+    "EMBEDDING_MODEL_NAME",
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+)
 
 
 def generate_chunk_id(chunk_text: str, source_name: str) -> str:
@@ -118,7 +124,10 @@ def batch_ingest_chroma(chunks, persist_dir: str, batch_size=200):
 def main():
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     raw_dir = os.path.join(project_root, "data", "raw", "guidelines")
-    chroma_dir = os.path.join(project_root, "knowledge_base", "chromadb")
+    chroma_dir = os.getenv(
+        "CHROMA_PERSIST_DIRECTORY",
+        os.path.join(project_root, "knowledge_base", "chromadb"),
+    )
 
     if not os.path.exists(raw_dir):
         os.makedirs(raw_dir, exist_ok=True)
