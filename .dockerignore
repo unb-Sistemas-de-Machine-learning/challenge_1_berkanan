@@ -17,7 +17,6 @@ __pycache__/
 htmlcov/
 
 # Heavy local data and generated outputs
-knowledge_base/chromadb/
 data/raw/
 data/processed/
 models/*.joblib
