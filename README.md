@@ -485,12 +485,6 @@ docker compose --profile prod up -d --build
 
 Sobe `db` (PostgreSQL), `backend` (porta 8000) e `frontend` (nginx na porta 5173, com proxy de `/api` e `/health` para o backend).
 
-### Render
-
-`render.yaml` declara o backend (Python), o frontend (site estático, com `VITE_API_URL` configurado no painel) e um PostgreSQL gerenciado. Detalhes em [docs/environments.md](docs/environments.md).
-
-> **ChromaDB em produção:** o compose (perfil prod) e o `render.yaml` usam `CHROMA_PERSIST_DIRECTORY=/var/chroma`, um volume persistente. No startup, se o volume ainda não tiver índice, a API copia para ele o índice versionado em `knowledge_base/chromadb/`. Um índice já existente no volume é mantido.
-
 ### Operação em produção (VM com Docker Compose)
 
 O ambiente da equipe roda numa VM Azure com o perfil `prod`. Endereço e credenciais de acesso são compartilhados por canal interno e **não devem ser commitados**. Na pasta do projeto, dentro da VM:
