@@ -4,8 +4,8 @@ import type { AnalysisResponse, MatchedSource } from "@/types/analysis"
 // Production: set VITE_API_URL to the public API origin, OR put frontend and backend
 // behind the same domain.
 const DEFAULT_API_URL = ""
-const ANALYZE_TIMEOUT_MS = 20000
-const DEFAULT_TIMEOUT_MS = 8000
+const ANALYZE_TIMEOUT_MS = 180000
+const DEFAULT_TIMEOUT_MS = 80000
 
 export class ApiError extends Error {
   status?: number
