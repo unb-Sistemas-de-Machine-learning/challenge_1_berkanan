@@ -43,6 +43,19 @@ Projeto acadêmico de Aprendizado de Máquina (ML) cujo objetivo é combater a d
 
 ---
 
+## ✅ Resultados e Validação dos Objetivos
+
+**Objetivo de Negócio:** Reduzir a desinformação alimentar e evitar decisões prejudiciais por pessoas com diabetes, garantindo acesso rápido a fontes confiáveis.
+- **Atingido:** O sistema foi testado para priorizar a identificação de afirmações falsas, garantindo que o usuário seja alertado corretamente sobre mitos (alto recall na classe `FAKE`), mitigando o risco primário.
+
+**Objetivo de Produto:** Oferecer uma interface interativa (chatbot), capaz de validar afirmações com base em dados técnicos reais, provendo justificativas explicadas de forma clara para o usuário final.
+- **Atingido:** O frontend provê uma experiência de chat fluida. A integração do ML (classificação), RAG (evidências científicas de órgãos oficiais) e LLM (explicação amigável do contexto) atende inteiramente os propósitos do produto, mesmo possuindo cenários de graceful degradation.
+
+**O Problema foi Resolvido?**
+- **Sim.** Foi criada uma solução completa que combate ativamente o problema (consumo de fake news sobre diabetes), através da verificação automatizada fundamentada nas principais diretrizes da área de saúde.
+
+---
+
 ## 🏗️ Arquitetura
 
 O sistema é composto por **quatro camadas independentes**, cada uma com responsabilidade clara:
