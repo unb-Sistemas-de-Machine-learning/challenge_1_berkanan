@@ -23,7 +23,9 @@ class MatchedSource(BaseModel):
 
 
 class AnalysisResponse(BaseModel):
-    id: UUID
+    # id e timestamp ficam nulos quando o PostgreSQL está indisponível:
+    # a análise é devolvida mesmo sem ser persistida no histórico.
+    id: UUID | None = None
     input_text: str
     classification: Classification
     confidence_score: float = Field(ge=0, le=1)
@@ -31,7 +33,7 @@ class AnalysisResponse(BaseModel):
     llm_explanation: str | None = None
     matched_sources: list[MatchedSource]
     model_version: str
-    timestamp: datetime
+    timestamp: datetime | None = None
     llm_model: str | None = None
     rag_sources_count: int = Field(ge=0)
     response_time_ms: int = Field(ge=0)

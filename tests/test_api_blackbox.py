@@ -1,6 +1,8 @@
 import os
+import tempfile
 import unittest
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -131,6 +133,39 @@ class BackendContractTests(unittest.TestCase):
             "#/components/schemas/MatchedSource",
         )
 
+    def test_analysis_is_returned_when_database_is_down(self):
+        result = {
+            "input_text": "Canela cura diabetes?",
+            "classification": "FAKE",
+            "confidence_score": 0.94,
+            "threshold": 0.5,
+            "llm_explanation": None,
+            "llm_model": None,
+            "matched_sources": [],
+            "model_version": "MultinomialNB",
+            "response_time_ms": 125,
+        }
+
+        with (
+            patch.object(analysis_routes, "analyze_claim", return_value=result),
+            patch.object(
+                analysis_routes,
+                "insert_analysis_orm",
+                side_effect=RuntimeError("database unavailable"),
+            ),
+            self.assertLogs(analysis_routes.logger, level="ERROR"),
+        ):
+            response = self.client.post(
+                "/api/analyze",
+                json={"text": "Canela cura diabetes?"},
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        body = response.json()
+        self.assertIsNone(body["id"])
+        self.assertIsNone(body["timestamp"])
+        self.assertEqual(body["classification"], "FAKE")
+
 
 class PersistenceAndFallbackTests(unittest.TestCase):
     def test_source_count_is_derived_during_orm_persistence(self):
@@ -190,6 +225,27 @@ class PersistenceAndFallbackTests(unittest.TestCase):
             result = fact_checker_service.analyze_claim("Canela cura diabetes?")
 
         self.assertEqual(result["response_time_ms"], 125)
+
+    def test_empty_chroma_volume_is_seeded_with_bundled_index(self):
+        from api.services.fact_checker_service import ensure_chroma_index
+
+        with tempfile.TemporaryDirectory() as tmp:
+            bundled = Path(tmp) / "bundled"
+            (bundled / "segment").mkdir(parents=True)
+            (bundled / "chroma.sqlite3").write_text("bundled")
+            (bundled / "segment" / "data_level0.bin").write_text("vectors")
+
+            empty_volume = Path(tmp) / "volume"
+            empty_volume.mkdir()
+            ensure_chroma_index(str(empty_volume), bundled_dir=bundled)
+            self.assertEqual((empty_volume / "chroma.sqlite3").read_text(), "bundled")
+            self.assertTrue((empty_volume / "segment" / "data_level0.bin").exists())
+
+            populated_volume = Path(tmp) / "populated"
+            populated_volume.mkdir()
+            (populated_volume / "chroma.sqlite3").write_text("existing")
+            ensure_chroma_index(str(populated_volume), bundled_dir=bundled)
+            self.assertEqual((populated_volume / "chroma.sqlite3").read_text(), "existing")
 
     def test_gemini_sdk_has_bounded_transient_retries(self):
         with patch.dict(
