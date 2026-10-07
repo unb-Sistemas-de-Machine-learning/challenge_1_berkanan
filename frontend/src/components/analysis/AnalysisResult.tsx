@@ -21,7 +21,7 @@ export function AnalysisResult({ analysis }: { analysis: AnalysisResponse }) {
       <div className="grid gap-6 px-5 py-5 sm:px-6">
         <ConfidenceIndicator score={analysis.confidence_score} />
         <div>
-          <h3 className="text-sm font-semibold">Por que essa classificação?</h3>
+          <h3 className="text-sm font-semibold">Por que este resultado da checagem?</h3>
           {explanation ? (
             <Markdown className="mt-2">{explanation}</Markdown>
           ) : (
