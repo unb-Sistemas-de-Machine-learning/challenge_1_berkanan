@@ -1,4 +1,7 @@
 # challenge_1_berkanan
+
+[Acessar a aplicação](http://172.183.22.39:5173)
+
 Challenge 1 - Equipe Berkanan - Tópicos Especiais em Engenharia de Software - Sistemas de Machine Learning 2026/02
 
 ## Chatbot de Verificação de Informações Nutricionais para Diabetes
@@ -12,43 +15,43 @@ Challenge 1 - Equipe Berkanan - Tópicos Especiais em Engenharia de Software - S
 
 Projeto acadêmico de Aprendizado de Máquina (ML) cujo objetivo é combater a desinformação alimentar voltada a pessoas com diabetes, por meio de um chatbot de checagem de fatos baseado em evidências científicas.
 
-> ⚠️ **Aviso acadêmico:** este sistema não substitui orientação médica ou nutricional profissional. Ele apenas verifica alegações com base em evidências recuperadas de documentos oficiais.
+> **Aviso acadêmico:** este sistema não substitui orientação médica ou nutricional profissional. Ele apenas verifica alegações com base em evidências recuperadas de documentos oficiais.
 
 ---
 
-## 📑 Sumário
+## Sumário
 
 - [Sobre o projeto](#-sobre-o-projeto)
 - [Resultados e validação dos objetivos](#-resultados-e-validação-dos-objetivos)
-- [Arquitetura](#️-arquitetura)
+- [Arquitetura](#arquitetura)
 - [Login sem autenticação](#-login-sem-autenticação)
 - [Stack técnica](#-stack-técnica)
 - [Estrutura do repositório](#-estrutura-do-repositório)
 - [Quick start](#-quick-start)
 - [Endpoints da API](#-endpoints-da-api)
-- [Variáveis de ambiente](#️-variáveis-de-ambiente)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Como funciona o pipeline](#-como-funciona-o-pipeline)
 - [Pipeline offline (dados, treino e indexação)](#-pipeline-offline-dados-treino-e-indexação)
 - [Testes](#-testes)
 - [Deploy](#-deploy)
-- [Limitações conhecidas](#️-limitações-conhecidas)
+- [Limitações conhecidas](#limitações-conhecidas)
 - [Equipe e referências](#-equipe-e-referências)
 
 ---
 
-## 🎯 Sobre o projeto
+## Sobre o projeto
 
 **Problema:** pessoas com diabetes tomam decisões alimentares sem verificar a veracidade das informações que recebem, especialmente em correntes de WhatsApp e redes sociais. Isso pode levar à redução ou abandono de tratamentos essenciais (ex.: insulina).
 
 **Solução:** um chatbot que recebe uma afirmação em português (ex.: *"canela cura diabetes"*), classifica como **verdadeira ou falsa**, e apresenta **evidências de fontes oficiais** (SBD, Ministério da Saúde, MedlinePlus, OMS, CDC, etc.) com explicação contextualizada para o diabetes.
 
 **Escopo:**
-- ✅ Afirmações sobre alimentação, dietas e mitos relacionados a diabetes
-- ❌ Prescrições médicas, dosagens de insulina, diagnósticos clínicos
+- Afirmações sobre alimentação, dietas e mitos relacionados a diabetes
+- Prescrições médicas, dosagens de insulina, diagnósticos clínicos
 
 ---
 
-## ✅ Resultados e validação dos objetivos
+## Resultados e validação dos objetivos
 
 ### Métricas do classificador (conjunto de teste, 34 exemplos nunca vistos no treino)
 
@@ -56,11 +59,11 @@ A meta mínima de desempenho era a configuração calibrada com threshold `0.29`
 
 | Métrica | Meta mínima (threshold 0.29) | Resultado final (threshold 0.5) | |
 |---|---|---|---|
-| Recall (FAKE) | 1.00 | **1.00** (22/22 — nenhuma fake news passou como verdadeira) | ✅ mantido |
-| Precisão (FAKE) | 0.880 | **0.957** | ✅ superada |
-| F1 (FAKE) | 0.936 | **0.978** | ✅ superada |
-| F1 macro | 0.897 | **0.967** | ✅ superada |
-| Recall (REAL) | 0.750 (9/12) | **0.917** (11/12) | ✅ superada |
+| Recall (FAKE) | 1.00 | **1.00** (22/22 — nenhuma fake news passou como verdadeira) | mantido |
+| Precisão (FAKE) | 0.880 | **0.957** | superada |
+| F1 (FAKE) | 0.936 | **0.978** | superada |
+| F1 macro | 0.897 | **0.967** | superada |
+| Recall (REAL) | 0.750 (9/12) | **0.917** (11/12) | superada |
 
 Validação cruzada (5 folds, treino) — comparação de 4 algoritmos em [models/training_report.md](models/training_report.md): `MultinomialNB` (F1-FAKE 0.910), `LinearSVC` (0.908), `LogisticRegression` (0.869), `RandomForest` (0.865).
 
@@ -70,19 +73,19 @@ Validação cruzada (5 folds, treino) — comparação de 4 algoritmos em [model
 
 | Objetivo | Status | Evidência |
 |---|---|---|
-| **Negócio:** reduzir a desinformação alimentar e alertar sobre mitos perigosos | ✅ Atendido (escopo acadêmico) | Recall de FAKE = 1.0 no teste; métrica de seleção priorizou recall de FAKE (RNF02). Não houve avaliação com usuários reais. |
-| **RNF02:** priorizar recall da classe FAKE (falso negativo é o erro mais caro) | ✅ Atendido | Seleção de modelo por F1/recall de FAKE + calibração de threshold ([scripts/calibrate_and_evaluate.py](scripts/calibrate_and_evaluate.py)). |
-| Meta mínima de desempenho do classificador (threshold 0.29) | ✅ Superada | Com threshold 0.5, todas as métricas ficaram acima da meta e o recall de FAKE continuou em 1.0 (tabela acima). |
-| **Produto:** interface de chat interativa | ✅ Atendido | Frontend React com chat, múltiplas conversas, histórico e tema claro/escuro. |
-| **Produto:** justificar com base em fontes oficiais | ✅ Atendido | RAG sobre 3.896 trechos de 89 documentos de 12 instituições; cada resposta traz até 3 evidências com fonte e similaridade. |
-| **Produto:** explicação clara para o usuário final | ⚠️ Parcial | Gemini gera explicação em markdown, mas depende de `GEMINI_API_KEY` e da cota do free tier. Sem ela, o usuário vê só rótulo + evidências. |
-| Persistência e histórico das análises | ✅ Atendido | PostgreSQL (`analysis_history`) + `GET /api/history`. O histórico é global (não separado por usuário). |
-| Resiliência a falhas de componentes | ✅ Atendido | LLM, Chroma e PostgreSQL podem falhar sem derrubar a análise (ver [Arquitetura](#️-arquitetura)); cenários cobertos por testes. |
-| Autenticação de usuários | ➖ Fora do escopo | O login é só identificação local, sem autenticação (ver [Login sem autenticação](#-login-sem-autenticação)). |
-| Restrição de escopo (apenas alimentação + diabetes) | ❌ Não implementado | Não há filtro de escopo: qualquer texto com 3+ caracteres é classificado como `REAL` ou `FAKE`. |
-| Saída com 4 classes (`REAL`, `FAKE`, `INCONCLUSIVE`, `PARTIALLY_TRUE`) | ❌ Não implementado | Schema, banco e frontend aceitam as 4, mas o modelo é binário. |
-| Implantação reproduzível | ✅ Atendido | `docker compose --profile prod` (db + backend + frontend/nginx), em uso numa VM Azure, e `render.yaml`. |
-| Testes automatizados | ✅ Atendido | 12 testes de contrato da API + testes de contrato do classificador + smoke test end-to-end. |
+| **Negócio:** reduzir a desinformação alimentar e alertar sobre mitos perigosos | Atendido (escopo acadêmico) | Recall de FAKE = 1.0 no teste; métrica de seleção priorizou recall de FAKE (RNF02). Não houve avaliação com usuários reais. |
+| **RNF02:** priorizar recall da classe FAKE (falso negativo é o erro mais caro) | Atendido | Seleção de modelo por F1/recall de FAKE + calibração de threshold ([scripts/calibrate_and_evaluate.py](scripts/calibrate_and_evaluate.py)). |
+| Meta mínima de desempenho do classificador (threshold 0.29) | Superada | Com threshold 0.5, todas as métricas ficaram acima da meta e o recall de FAKE continuou em 1.0 (tabela acima). |
+| **Produto:** interface de chat interativa | Atendido | Frontend React com chat, múltiplas conversas, histórico e tema claro/escuro. |
+| **Produto:** justificar com base em fontes oficiais | Atendido | RAG sobre 3.896 trechos de 89 documentos de 12 instituições; cada resposta traz até 3 evidências com fonte e similaridade. |
+| **Produto:** explicação clara para o usuário final | Parcial | Gemini gera explicação em markdown, mas depende de `GEMINI_API_KEY` e da cota do free tier. Sem ela, o usuário vê só rótulo + evidências. |
+| Persistência e histórico das análises | Atendido | PostgreSQL (`analysis_history`) + `GET /api/history`. O histórico é global (não separado por usuário). |
+| Resiliência a falhas de componentes | Atendido | LLM, Chroma e PostgreSQL podem falhar sem derrubar a análise (ver [Arquitetura](#arquitetura)); cenários cobertos por testes. |
+| Autenticação de usuários | Fora do escopo | O login é só identificação local, sem autenticação (ver [Login sem autenticação](#login-sem-autenticação)). |
+| Restrição de escopo (apenas alimentação + diabetes) | Não implementado | Não há filtro de escopo: qualquer texto com 3+ caracteres é classificado como `REAL` ou `FAKE`. |
+| Saída com 4 classes (`REAL`, `FAKE`, `INCONCLUSIVE`, `PARTIALLY_TRUE`) | Não implementado | Schema, banco e frontend aceitam as 4, mas o modelo é binário. |
+| Implantação reproduzível | Atendido | `docker compose --profile prod` (db + backend + frontend/nginx), em uso numa VM Azure, e `render.yaml`. |
+| Testes automatizados | Atendido | 12 testes de contrato da API + testes de contrato do classificador + smoke test end-to-end. |
 
 ### O problema foi resolvido?
 
@@ -92,7 +95,7 @@ Para uso real ainda faltam: dataset maior e mais variado (o classificador aprend
 
 ---
 
-## 🏗️ Arquitetura
+## Arquitetura
 
 O sistema é composto por um frontend estático e uma API que orquestra **três etapas de análise** e a **persistência**:
 
@@ -142,13 +145,13 @@ O sistema é composto por um frontend estático e uma API que orquestra **três 
 
 | Falha | Comportamento | Status |
 |---|---|---|
-| LLM (`429`, `503`, sem chave, modelo descontinuado) | `llm_explanation: null`; classificação e evidências continuam | ✅ coberto por testes |
-| Volume do Chroma vazio (primeiro deploy) | No startup, o índice versionado é copiado para `CHROMA_PERSIST_DIRECTORY`; um índice já existente nunca é sobrescrito | ✅ coberto por testes |
-| ChromaDB indisponível | `matched_sources: []`; classificação continua | ✅ |
-| PostgreSQL fora do ar | Análise devolvida normalmente com `id: null` e `timestamp: null` (não entra no histórico; o frontend mostra "não persistido") | ✅ coberto por testes |
+| LLM (`429`, `503`, sem chave, modelo descontinuado) | `llm_explanation: null`; classificação e evidências continuam | coberto por testes |
+| Volume do Chroma vazio (primeiro deploy) | No startup, o índice versionado é copiado para `CHROMA_PERSIST_DIRECTORY`; um índice já existente nunca é sobrescrito | coberto por testes |
+| ChromaDB indisponível | `matched_sources: []`; classificação continua |  |
+| PostgreSQL fora do ar | Análise devolvida normalmente com `id: null` e `timestamp: null` (não entra no histórico; o frontend mostra "não persistido") | coberto por testes |
 | Modelo `.joblib` ausente | API não sobe (falha no startup) | — |
 
-### 🔓 Login sem autenticação
+### Login sem autenticação
 
 A tela de login **não autentica ninguém**. É apenas uma identificação local para personalizar a interface:
 
@@ -161,7 +164,7 @@ Por isso, **não envie dados pessoais ou de saúde identificáveis nas afirmaç�
 
 ---
 
-## 🧰 Stack técnica
+## Stack técnica
 
 ### Backend
 
@@ -193,7 +196,7 @@ Por isso, **não envie dados pessoais ou de saúde identificáveis nas afirmaç�
 
 ---
 
-## 📁 Estrutura do repositório
+## Estrutura do repositório
 
 Monorepo com **backend na raiz** e **frontend em `frontend/`**:
 
@@ -228,7 +231,7 @@ challenge_1_berkanan/
 
 ---
 
-## 🚀 Quick start
+## Quick start
 
 ### Pré-requisitos
 
@@ -263,7 +266,7 @@ python -m pip install -r requirements-api.txt
 
 > `requirements-api.txt` inclui `requirements.txt` (ML, RAG, Gemini, PostgreSQL e FastAPI). `requirements-rag.txt` só é necessário para scripts de prototipação com `langchain-google-genai`.
 >
-> ⏱️ Primeira instalação: ~15 min (torch + transformers, ~5 GB).
+> Primeira instalação: ~15 min (torch + transformers, ~5 GB).
 
 ### 3. Configurar `.env`
 
@@ -308,7 +311,7 @@ npm run dev
 
 Acesse **http://localhost:5173**, informe nome e e-mail na tela de entrada e envie uma afirmação.
 
-> 💡 Em dev, o Vite faz proxy de `/api/*` e `/health` para `http://localhost:8000`, então não há problema de CORS.
+> Em dev, o Vite faz proxy de `/api/*` e `/health` para `http://localhost:8000`, então não há problema de CORS.
 
 ### Fluxo resumido (copiar e colar)
 
@@ -326,7 +329,7 @@ cd frontend && npm install && npm run dev
 
 ---
 
-## 🔌 Endpoints da API
+## Endpoints da API
 
 | Método | Rota | Descrição | Request | Response |
 |---|---|---|---|---|
@@ -366,22 +369,22 @@ Documentação interativa em **http://127.0.0.1:8000/docs**.
 
 ---
 
-## ⚙️ Variáveis de ambiente
+## Variáveis de ambiente
 
 ### Backend (`.env`)
 
 | Variável | Obrigatória | Padrão | Descrição |
 |---|---|---|---|
-| `DATABASE_URL` | ❌ | — | URL SQLAlchemy do PostgreSQL. Se definida, tem prioridade sobre `DB_*` |
-| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASS` | ❌ | `localhost` / `5432` / `factchecker` / `admin` / `adminpassword` | Usadas só sem `DATABASE_URL` |
-| `CHROMA_PERSIST_DIRECTORY` | ❌ | `knowledge_base/chromadb` | Diretório do índice vetorial |
-| `EMBEDDING_MODEL_NAME` | ❌ | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | Modelo de embeddings (deve ser o mesmo da ingestão) |
-| `GEMINI_API_KEY` | ❌ | — | Chave do Google Gemini (sem ela, `llm_explanation: null`) |
-| `LLM_MODEL` | ❌ | `gemini-3.8-flash` | Modelo Gemini |
-| `LLM_MAX_RETRIES` | ❌ | `3` | Tentativas em falhas transitórias (408, 429, 5xx) |
-| `APP_ENV` | ❌ | `development` | `development` ou `production` (altera as origens CORS padrão) |
-| `FRONTEND_ORIGINS` | ❌ | `http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173` | Origens CORS, separadas por vírgula |
-| `PORT` | ❌ | `8000` | Porta do backend (Render/Procfile) |
+| `DATABASE_URL` |  | — | URL SQLAlchemy do PostgreSQL. Se definida, tem prioridade sobre `DB_*` |
+| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASS` |  | `localhost` / `5432` / `factchecker` / `admin` / `adminpassword` | Usadas só sem `DATABASE_URL` |
+| `CHROMA_PERSIST_DIRECTORY` |  | `knowledge_base/chromadb` | Diretório do índice vetorial |
+| `EMBEDDING_MODEL_NAME` |  | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | Modelo de embeddings (deve ser o mesmo da ingestão) |
+| `GEMINI_API_KEY` |  | — | Chave do Google Gemini (sem ela, `llm_explanation: null`) |
+| `LLM_MODEL` |  | `gemini-3.8-flash` | Modelo Gemini |
+| `LLM_MAX_RETRIES` |  | `3` | Tentativas em falhas transitórias (408, 429, 5xx) |
+| `APP_ENV` |  | `development` | `development` ou `production` (altera as origens CORS padrão) |
+| `FRONTEND_ORIGINS` |  | `http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173` | Origens CORS, separadas por vírgula |
+| `PORT` |  | `8000` | Porta do backend (Render/Procfile) |
 
 ### Frontend
 
@@ -392,7 +395,7 @@ Documentação interativa em **http://127.0.0.1:8000/docs**.
 
 ---
 
-## 🧠 Como funciona o pipeline
+## Como funciona o pipeline
 
 ### 1. Classificação ML
 
@@ -402,7 +405,7 @@ Documentação interativa em **http://127.0.0.1:8000/docs**.
 - **Threshold:** `0.5`, escolhido pela calibração out-of-fold (maior recall de FAKE com precisão mínima de 0.7). Supera a meta mínima definida com threshold `0.29` (ver [Resultados](#-resultados-e-validação-dos-objetivos))
 - **Saída:** `p_fake` ∈ [0, 1] → `FAKE` se `p_fake >= 0.5`, senão `REAL`
 
-> ⚠️ **`confidence_score` é sempre `p_fake`**, mesmo quando a classificação é `REAL`. Não é probabilidade de veracidade nem confiança genérica. O frontend o exibe como "Probabilidade de a afirmação ser falsa".
+> **`confidence_score` é sempre `p_fake`**, mesmo quando a classificação é `REAL`. Não é probabilidade de veracidade nem confiança genérica. O frontend o exibe como "Probabilidade de a afirmação ser falsa".
 
 ### 2. RAG (Retrieval-Augmented Generation)
 
@@ -431,7 +434,7 @@ Documentação interativa em **http://127.0.0.1:8000/docs**.
 
 ---
 
-## 🔄 Pipeline offline (dados, treino e indexação)
+## Pipeline offline (dados, treino e indexação)
 
 Esses scripts **não rodam na API** — servem para regenerar dataset, modelo e índice. Os artefatos resultantes já estão versionados.
 
@@ -456,7 +459,7 @@ python scripts/fact_checker.py --interactive                # modo interativo
 
 ---
 
-## 🧪 Testes
+## Testes
 
 ```bash
 # Testes de contrato da API (12 testes; não precisam de banco, Chroma nem Gemini)
@@ -474,7 +477,7 @@ Os testes de API cobrem: rejeição de texto curto (422), contrato de resposta e
 
 ---
 
-## 🚢 Deploy
+## Deploy
 
 ### Docker Compose (tudo local)
 
@@ -506,7 +509,7 @@ sudo docker compose --profile prod up -d backend
 sudo docker compose --profile prod logs -f backend
 ```
 
-> ⚠️ `docker compose restart` **não** relê o `.env` e **não** aplica código novo: ele só reinicia o mesmo container. Use `up -d` (com `--build` quando o código mudar).
+> `docker compose restart` **não** relê o `.env` e **não** aplica código novo: ele só reinicia o mesmo container. Use `up -d` (com `--build` quando o código mudar).
 >
 > Em instalações com o Compose v1, troque `docker compose` por `docker-compose`.
 
@@ -514,7 +517,7 @@ Boas práticas para o repositório público: nunca commitar `.env`, chaves de AP
 
 ---
 
-## ⚠️ Limitações conhecidas
+## Limitações conhecidas
 
 Detalhes do classificador em [models/limitations.md](models/limitations.md).
 
@@ -534,7 +537,7 @@ Detalhes do classificador em [models/limitations.md](models/limitations.md).
 
 ---
 
-## 👥 Equipe e referências
+## Equipe e referências
 
 **Equipe Berkanan** — Tópicos Especiais em Engenharia de Software - Sistemas de Machine Learning 2026/02.
 
@@ -556,8 +559,8 @@ Detalhes do classificador em [models/limitations.md](models/limitations.md).
 
 ---
 
-## 📄 Licença
+## Licença
 
 Projeto acadêmico. Uso educacional.
 
-> 🩺 **Aviso final:** este sistema é uma ferramenta de triagem acadêmica. Ele **não substitui** orientação de médico ou nutricionista. Sempre procure um profissional de saúde antes de tomar decisões sobre tratamento.
+> **Aviso final:** este sistema é uma ferramenta de triagem acadêmica. Ele **não substitui** orientação de médico ou nutricionista. Sempre procure um profissional de saúde antes de tomar decisões sobre tratamento.
